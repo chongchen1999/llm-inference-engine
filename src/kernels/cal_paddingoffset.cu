@@ -6,12 +6,12 @@
 // note: the point is to calc padding offset and cum offset
 // TODO: we first use serial algo, then can enhance to CUDA scan algo
 
-__global__ void CalPaddingoffset(
-                                int* padding_offset, 
-                                int*         cum_seqlens,
-                                const int*   input_lengths, //actual input lens
-                                const int    batch_size,
-                                const int    max_q_len) {
+__global__ void CalPaddingoffset(int* padding_offset, 
+                                 int*         cum_seqlens,
+                                 const int*   input_lengths, //actual input lens
+                                 const int    batch_size,
+                                 const int    max_q_len) 
+{
     int ind = 0;
     int cum_offset = 0;
     int total_seqlen = 0;

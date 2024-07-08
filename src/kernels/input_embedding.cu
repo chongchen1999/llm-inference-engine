@@ -6,7 +6,8 @@ template<typename T>
 __global__ void embeddingFunctor(const int* input_ids, T* output, 
                                  const T* embed_table,
                                  const int max_context_token_num,
-                                 const int hidden_size) {
+                                 const int hidden_size) 
+{
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     while (index < max_context_token_num * hidden_size) {
         int id = input_ids[index / hidden_size];
@@ -18,8 +19,7 @@ __global__ void embeddingFunctor(const int* input_ids, T* output,
 template<typename T>
 void launchInputEmbedding(TensorWrapper<int>* input_ids,    // INT [token num]
                           TensorWrapper<T>* output,       // FP32 [token num, hidden_size] = [token num, 4096]
-                          EmbeddingWeight<T>* embed_table // FP32 [vocal_size, hidden_size]
-                          ) 
+                          EmbeddingWeight<T>* embed_table) // FP32 [vocal_size, hidden_size]
 {
     const int blockSize = 256;
     const int max_context_token_num = output->shape[0]; // token num
