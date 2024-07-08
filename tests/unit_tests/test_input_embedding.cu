@@ -144,7 +144,7 @@ void process(int* h_input, int input_size, int table_size, int output_size,
 int main(int argc, char *argv[]) {
     const int max_context_token_num = 64;
     const int hidden_size = 4096;
-    const int vocab_size = 30000;
+    const int vocab_size = 32000;
     const int input_size = max_context_token_num;
     const int table_size = vocab_size * hidden_size;
     const int output_size = max_context_token_num * hidden_size;
