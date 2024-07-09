@@ -15,31 +15,29 @@ int main() {
     // debug info, better to retain: std::cout <<"batch_size=" << batch_size << "  vocab_size=" << vocab_size << std::endl;
     int* h_seq_lens;
     int *d_seq_lens;
-    h_seq_lens = (int*)malloc(sizeof(int) * batch_size);
-    cudaMalloc((void**)&d_seq_lens, sizeof(int) * batch_size);
+    h_seq_lens = (int *)malloc(sizeof(int) * batch_size);
+    cudaMalloc((void **)&d_seq_lens, sizeof(int) * batch_size);
 
     int* h_cum_seqlens;
     int* d_cum_seqlens;
-    h_cum_seqlens = (int*)malloc(sizeof(int) * (batch_size + 1));
-    cudaMalloc((void**)&d_cum_seqlens, sizeof(int) * (batch_size + 1));
+    h_cum_seqlens = (int *)malloc(sizeof(int) * (batch_size + 1));
+    cudaMalloc((void **)&d_cum_seqlens, sizeof(int) * (batch_size + 1));
     
     int* h_padding_offset;
     int* d_padding_offset;
-    h_padding_offset = (int*)malloc(sizeof(int) * batch_size * max_q_len);
-    cudaMalloc((void**)&d_padding_offset, sizeof(int) * batch_size * max_q_len);
+    h_padding_offset = (int *)malloc(sizeof(int) * batch_size * max_q_len);
+    cudaMalloc((void **)&d_padding_offset, sizeof(int) * batch_size * max_q_len);
 
     for(int i = 0; i < batch_size; i++) { // 3
        h_seq_lens[i] = batch_size;
     }
     cudaMemcpy(d_seq_lens, h_seq_lens, sizeof(int) * batch_size, cudaMemcpyHostToDevice);
     DataType type_int = getTensorType<int>();
-    TensorWrapper<int>* padding_offset = new TensorWrapper<int>(Device::GPU, type_int, {batch_size, max_q_len}, d_padding_offset);
-    TensorWrapper<int>* cum_seqlens = new TensorWrapper<int>(Device::GPU, type_int, {batch_size + 1}, d_cum_seqlens);
-    TensorWrapper<int>* input_lengths = new TensorWrapper<int>(Device::GPU, type_int, {batch_size}, d_seq_lens);
+    TensorWrapper<int> *padding_offset = new TensorWrapper<int>(Device::GPU, type_int, {batch_size, max_q_len}, d_padding_offset);
+    TensorWrapper<int> *cum_seqlens = new TensorWrapper<int>(Device::GPU, type_int, {batch_size + 1}, d_cum_seqlens);
+    TensorWrapper<int> *input_lengths = new TensorWrapper<int>(Device::GPU, type_int, {batch_size}, d_seq_lens);
     // debug info, better to retain: std::cout << "before launch kernel" << std::endl;
-    launchCalPaddingoffset(padding_offset, 
-                           cum_seqlens,
-                           input_lengths);
+    launchCalPaddingOffset(padding_offset, cum_seqlens, input_lengths);
     // debug info, better to retain: std::cout << "after launch kernel" << std::endl;
     // Note: remember to memcpy from device to host and define the correct copy size(mul the sizeof(dtype)), or will cause segment fault
     cudaMemcpy(h_padding_offset, d_padding_offset, sizeof(int) * batch_size * max_q_len, cudaMemcpyDeviceToHost);
@@ -61,4 +59,5 @@ int main() {
     cudaFree(d_seq_lens);
     cudaFree(d_padding_offset);
     cudaFree(d_cum_seqlens);
+    return 0;
 }

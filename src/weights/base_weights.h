@@ -25,8 +25,9 @@ constexpr WeightType getWeightType() {
 
 template<typename T>
 class BaseWeight {
+public:
+    WeightType type;
     std::vector<int> shape;
     T* data;
-    WeightType type;
     T* bias;
 };

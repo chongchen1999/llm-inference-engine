@@ -29,17 +29,18 @@ do                                                    \
 
 // CPU implementation of embedding
 void cpuEmbedding(const int* input_ids, float* output, float* embed_table,
-                  const int max_context_token_num, const int hidden_size, const int vocab_size) {
+                  const int max_context_token_num, 
+                  const int hidden_size, const int vocab_size) {
     for (int i = 0; i < max_context_token_num; ++i) {
         for (int j = 0; j < hidden_size; ++j) {
-            output[j + i * hidden_size] = embed_table[j + input_ids[i] * hidden_size];
+            *(output + j + i * hidden_size) = *(embed_table + j + input_ids[i] * hidden_size);
         }
     }
 }
 
 // Function to check results between CPU and GPU
 bool checkResults(float* h_output, float* d_output, const int output_size) {
-    float* d_output_cpu = (float*) malloc(output_size * sizeof(float)); // prepare for cpu check
+    float* d_output_cpu = (float *)malloc(output_size * sizeof(float)); // prepare for cpu check
     CHECK(cudaMemcpy(d_output_cpu, d_output, output_size * sizeof(float), cudaMemcpyDeviceToHost));
     const float EPS = 1e-5;
     for (int i = 0; i < output_size; ++i) {
@@ -64,13 +65,15 @@ bool checkResults(float* h_output, float* d_output, const int output_size) {
 }
 
 template <typename T>
-void allocateMemoryAndInitialize(T*& h_table, T*& h_output, int table_size, int output_size) {
-    h_table = (T*) malloc(table_size * sizeof(T));
-    h_output = (T*) malloc(output_size * sizeof(T));
+void allocateMemoryAndInitialize(T * &h_table, T * &h_output, int table_size, int output_size) {
+    h_table = (T *)malloc(table_size * sizeof(T));
+    h_output = (T *)malloc(output_size * sizeof(T));
 }
 
 template <typename T>
-void initializeHostMemory(int* h_input, int max_context_token_num, int vocab_size, int table_size, int hidden_size, T* h_table) {
+void initializeHostMemory(int* h_input, int max_context_token_num, 
+                          int vocab_size, int table_size, 
+                          int hidden_size, T* h_table) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dis_int(0, vocab_size - 1);
@@ -151,9 +154,11 @@ int main(int argc, char *argv[]) {
 
     int* h_input = (int*) malloc(input_size * sizeof(int));
     if (argc > 1) {
-        process<float>(h_input, input_size, table_size, output_size, max_context_token_num, hidden_size, vocab_size);
+        process<float>(h_input, input_size, table_size, output_size, 
+                       max_context_token_num, hidden_size, vocab_size);
     } else {
-        process<half>(h_input, input_size, table_size, output_size, max_context_token_num, hidden_size, vocab_size);
+        process<half>(h_input, input_size, table_size, output_size, 
+                      max_context_token_num, hidden_size, vocab_size);
     }
     free(h_input);
     return 0;

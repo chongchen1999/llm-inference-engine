@@ -22,12 +22,12 @@ inline std::string fmtstr(const std::string& format, Args... args) {
 
 // Converts elements in a vector to a string
 template<typename T>
-inline std::string vec2str(const std::vector<T>& vec) {
+inline std::string vec2str(const std::vector<T> &vec) {
     std::stringstream ss;
     ss << "(";
     if (!vec.empty()) {
-        for (size_t i = 0; i < vec.size() - 1; ++i) {
-            ss << vec[i] << ", ";
+        for (auto &vec : vec) {
+            ss << vec << ", ";
         }
         ss << vec.back();
     }
@@ -37,7 +37,7 @@ inline std::string vec2str(const std::vector<T>& vec) {
 
 // Converts elements in an array to a string
 template<typename T>
-inline std::string arr2str(const T* arr, size_t size) {
+inline std::string arr2str(const T * const &arr, size_t size) {
     std::stringstream ss;
     ss << "(";
     for (size_t i = 0; i < size - 1; ++i) {

@@ -6,4 +6,5 @@
 
 template<typename T>
 void launchInputEmbedding(TensorWrapper<int>* input_ids,    
-    TensorWrapper<T>* output, EmbeddingWeight<T>* embed_table);
+                          TensorWrapper<T>* output, 
+                          EmbeddingWeight<T>* embed_table);
