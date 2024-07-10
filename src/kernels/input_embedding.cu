@@ -11,15 +11,15 @@ __global__ void embeddingFunctor(const int *input_ids, T *output,
 
     for (int i = gid; i < max_context_token_num * hidden_size; i += stride) {
         int token_val = input_ids[i / hidden_size];
-        int feature_vector_dim = i % hidden_size;
-        output[i] = *(embed_table + token_val * hidden_size + feature_vector_dim);
+        int feature_vector_idx = i % hidden_size;
+        output[i] = *(embed_table + token_val * hidden_size + feature_vector_idx);
     }
 }
 
 template<typename T>
-void launchInputEmbedding(TensorWrapper<int>* input_ids,    // INT [token num]
-                          TensorWrapper<T>* output,       // FP32 [token num, hidden_size] = [token num, 4096]
-                          EmbeddingWeight<T>* embed_table) { // FP32 [vocal_size, hidden_size]
+void launchInputEmbedding(TensorWrapper<int> *input_ids,    // INT [token num]
+                          TensorWrapper<T> *output,       // FP32 [token num, hidden_size] = [token num, 4096]
+                          EmbeddingWeight<T> *embed_table) { // FP32 [vocal_size, hidden_size]
     const int blockSize = 256;
     const int max_context_token_num = output->shape[0]; // token num
     const int hidden_size = output->shape[1];
@@ -40,12 +40,10 @@ void launchInputEmbedding(TensorWrapper<int>* input_ids,    // INT [token num]
 }
 
 // Explicit template instantiation
-template<>
-void launchInputEmbedding(TensorWrapper<int>* input_ids,    
-                          TensorWrapper<float>* output,       
-                          EmbeddingWeight<float>* embed_table);
+template void launchInputEmbedding(TensorWrapper<int>* input_ids,    
+                                   TensorWrapper<float>* output,       
+                                   EmbeddingWeight<float>* embed_table);
                                    
-template<>
-void launchInputEmbedding(TensorWrapper<int>* input_ids,    
-                          TensorWrapper<half>* output,
-                          EmbeddingWeight<half>* embed_table);
+template void launchInputEmbedding(TensorWrapper<int>* input_ids,    
+                                   TensorWrapper<half>* output,
+                                   EmbeddingWeight<half>* embed_table);

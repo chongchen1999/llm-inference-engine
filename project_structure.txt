@@ -1,0 +1,17 @@
+MyProject
+    src
+        kernels
+            input_embedding.h
+            input_embedding.cu
+    utils
+        macro.h
+        string_utils.h
+        tensor.h
+    weights
+        llama
+            embedding_weight.h
+        base_weights.h
+
+    tests
+        unit_tests
+            test_input_embedding.cu
