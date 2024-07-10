@@ -25,8 +25,7 @@ inline WeightType getWeightType() {
 }
 
 template<typename T>
-class BaseWeight {
-public:
+struct BaseWeight {
     WeightType type;
     std::vector<int> shape;
     T* data;
