@@ -1,8 +1,10 @@
 MyProject
     src
         kernels
-            input_embedding.h
-            input_embedding.cu
+            linear.h
+            linear.cu
+            cublas_utils.cc
+            cublas_utils.h
     utils
         macro.h
         string_utils.h
@@ -14,4 +16,4 @@ MyProject
 
     tests
         unit_tests
-            test_input_embedding.cu
+            test_linear.cu

@@ -4,6 +4,7 @@
 #include <cstdlib>     // std::rand
 #include <string>      // std::string
 #include <vector>      // std::vector
+#include <cuda_runtime.h>
 
 #include "src/kernels/build_casual_mask.h"
 
@@ -63,11 +64,11 @@ int main() {
     cudaMalloc((void **)&d_mask, sizeof(float) * mask_size);
 
     for (int i = 0; i < batch_size; ++i) {
-        h_q_lens[i] = 3;
+        h_q_lens[i] = std::rand() % max_q_len + 1;
     }
 
     for (int i = 0; i < batch_size; ++i) {
-        h_k_lens[i] = 3;
+        h_k_lens[i] = std::rand() % max_k_len + 1;
     }
 
     CHECK(cudaMemcpy(d_q_lens, h_q_lens, sizeof(int) * batch_size, cudaMemcpyHostToDevice));

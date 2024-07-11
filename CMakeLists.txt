@@ -8,22 +8,32 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add the root directory as an include directory
-include_directories(${CMAKE_SOURCE_DIR})
+# Include directories for header files
+include_directories(
+    ${CMAKE_SOURCE_DIR}
+)
 
-# Add the source files
+# Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/build_casual_mask.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/linear.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/cublas_utils.cc  # Assuming this contains implementation
 )
 
-# Add the test sources
+# Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_casual_mask.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_linear.cu
 )
 
-# Add the executable for the test
+# Add the executable for the tests
 add_executable(test ${SOURCES} ${TEST_SOURCES})
 
-# Link CUDA libraries
+# Find CUDA toolkit including cuBLAS
 find_package(CUDAToolkit REQUIRED)
-target_link_libraries(test ${CUDAToolkit_LIBRARIES})
+
+# Check if cuBLAS was found
+if(NOT CUDAToolkit_FOUND)
+    message(FATAL_ERROR "CUDA Toolkit not found.")
+endif()
+
+# Link CUDA and cuBLAS libraries
+target_link_libraries(test CUDA::cublas CUDA::cuda_driver)
