@@ -13,12 +13,12 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 # Add the source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/cal_padding_offset.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/rmsnorm.cu
 )
 
 # Add the test sources
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_cal_padding_offset.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_rmsnorm.cu
 )
 
 # Add the executable for the test
