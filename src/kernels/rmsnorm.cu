@@ -86,7 +86,7 @@ __global__ void RMSNorm(half *decoder_out, // [num tokens, q_hidden_units]
     auto vec_dout = reinterpret_cast<Vec_t *>(decoder_out + blockDim.x * hidden_units);
     Vec_t *rsd;
     if (decoder_residual != nullptr) {
-        rsd = reinterpret_cast<Vec_t*>(decoder_residual + blockDim.x * hidden_units);
+        rsd = reinterpret_cast<Vec_t *>(decoder_residual + blockDim.x * hidden_units);
     }
     float thread_sum = 0.0f;
 
