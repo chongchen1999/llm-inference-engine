@@ -17,6 +17,7 @@ down: [bs/token nums, intersize] * [qhiddenunits, intersize] = [bs/token nums, q
 
 //Note: cuBLAS is column-major.
 
+// compute y = x * AT, since cublas is col-major, we actually compute yT = A * xT
 template <typename T>
 void launchLinearGemm(TensorWrapper<T> *input,
                       BaseWeight<T> &weight,
@@ -29,6 +30,10 @@ void launchLinearGemm(TensorWrapper<T> *input,
     int Bn = weight.shape[1];
     int Cm = output->shape[0];
     int Cn = output->shape[1];
+    // printf("shape A: %d %d\n", Am, An);
+    // printf("shape B: %d %d\n", Bm, Bn);
+    // printf("shape C: %d %d\n", Cm, Cn);
+    // puts("");
     // for ctx attn and self attn qkv linear, assume [bs/token nums, qkv head num, head size]
     // for gate & up linear, assume weight.shape=[hidden, 2*intersize], output.shape=[bs, 2, intersize]
     // for ctx attn output linear
@@ -47,27 +52,29 @@ void launchLinearGemm(TensorWrapper<T> *input,
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
 
-    // col-major
-    int lda = Am;
-    int ldb = Bm;
-    int ldc = Cm;
+    // we neend compute C = opA * opB, actually compute: CT = (opB)T * (opA)T
+    int lda = opAn; // leading dim for (opA)T in col-major
+    int ldb = opBn;
+    int ldc = Cn;
 
-    // for lmhead linear and ffn all linears
-    auto transA = trans_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-    auto transB = trans_a ? CUBLAS_OP_T : CUBLAS_OP_N;
+    // Two transpose make no transpose
+    auto transA = trans_a ? CUBLAS_OP_N : CUBLAS_OP_T;
+    auto transB = trans_b ? CUBLAS_OP_N : CUBLAS_OP_T;
 
-    // row-major to cublas_wrapper, and trans to col-major when feed to cublas
+    // we need C = opA * opB, 
+    // feed CT = opBT * opAT to cublas,
+    // cublas retuen CT in col-major, that is C in row-major
     cublas_wrapper->gemm(transA,
                          transB,
-                         Cm, // m
-                         Cn,                // n, when load real weight, lmhead weight is same as pre embedding, which shape = [vocab, hidden], so here should transpose b
-                         An,
-                         weight.data,  // A, cur_input_len is for context decoder lmhead
-                         lda,          // lda
-                         input->data,  // B
-                         ldb,          // ldb
-                         output->data, // C
-                         ldc,          // ldc
+                         Cn, // m
+                         Cm,               
+                         opAn,
+                         weight.data,
+                         ldb,         
+                         input->data,  
+                         lda,          
+                         output->data, 
+                         ldc,        
                          1.0f,
                          0.0f);
 
@@ -100,10 +107,10 @@ void launchLinearStridedBatchGemm(TensorWrapper<T> *input1,
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
 
-    // col-major
-    int lda = Am;
-    int ldb = Bm;
-    int ldc = Cm;
+    // we neend compute C = opA * opB, actually compute: CT = (opB)T * (opA)T
+    int lda = opAn; // leading dim for (opA)T in col-major
+    int ldb = opBn;
+    int ldc = Cn;
 
     int64_t strideA = opAm * opAn;
     int64_t strideB = opBm * opBn;
@@ -113,20 +120,21 @@ void launchLinearStridedBatchGemm(TensorWrapper<T> *input1,
     // TODO: check batchCount of two matrix is equal
     int batchCount = input1->shape[0] * input1->shape[1];
 
-    auto transA = trans_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    auto transB = trans_b ? CUBLAS_OP_T : CUBLAS_OP_N;
+    // Two transpose make no transpose
+    auto transA = trans_a ? CUBLAS_OP_N : CUBLAS_OP_T;
+    auto transB = trans_b ? CUBLAS_OP_N : CUBLAS_OP_T;
 
     cublas_wrapper->stridedBatchedGemm(transA,
                                        transB,
-                                       Cm,           // m
-                                       Cn,           // n
-                                       An,           // k
-                                       input1->data,
-                                       lda,
-                                       strideA,
+                                       Cn,           // m
+                                       Cm,           // n
+                                       opAn,           // k
                                        input2->data,
                                        ldb,
                                        strideB,
+                                       input1->data,
+                                       lda,
+                                       strideA,
                                        output->data,
                                        ldc,
                                        strideC,

@@ -23,8 +23,7 @@ void cublasWrapper::setFP16GemmConfig() {
     computeType_ = CUDA_R_32F;
 }
 
-// FP32 GEMM and FP16 GEMM
-// from row-major(C++ style) to col-major(cuBLAS style)
+// FP32 GEMM and FP16 GEMM,
 void cublasWrapper::gemm(cublasOperation_t transa,
                          cublasOperation_t transb,
                          const int         m,
@@ -46,20 +45,21 @@ void cublasWrapper::gemm(cublasOperation_t transa,
     const void *beta_ptr = is_fp16_computeType ? reinterpret_cast<const void *>(&beta_half) 
                                                : reinterpret_cast<const void *>(&beta);
 
+    /*printf("transa: %d, transb: %d, m: %d, n: %d, k: %d\n", transa, transb, m, n, k);
+    printf("lda: %d, ldb: %d, ldc: %d\n", lda, ldb, ldc);
+    printf("alpha: %f, beta: %f\n", alpha, beta);*/
 
-    int opAm = transa ? k : m;
-    int opAn = transa ? m : k;
-    int opBm = transb ? n : k;
-    int opBn = transb ? k : n;
-    int Cm = transa ? m : opAm;
-    int Cn = transb ? n : opBn;
+    // printf("below is 2d matmul:\n");
+    // print_gpu_mat(reinterpret_cast<float *>(const_cast<void *>(A)), m, k);
+    // print_gpu_mat(reinterpret_cast<float *>(const_cast<void *>(B)), k, n);
+    // print_gpu_mat(reinterpret_cast<float *>(const_cast<void *>(C)), m, n);
 
     CHECK_CUBLAS(cublasGemmEx(cublas_handle_,
                               transa,
                               transb,
-                              Cm,
-                              Cn,
-                              opAn,
+                              m,
+                              n,
+                              k,
                               alpha_ptr,
                               A,
                               Atype_,
@@ -73,6 +73,9 @@ void cublasWrapper::gemm(cublasOperation_t transa,
                               ldc,
                               computeType_,
                               CUBLAS_GEMM_DEFAULT));
+    
+    // printf("after matmul:\n");
+    // print_gpu_mat(reinterpret_cast<float *>(const_cast<void *>(C)), m, n);
 }
 
 void cublasWrapper::stridedBatchedGemm(cublasOperation_t transa,
@@ -99,20 +102,13 @@ void cublasWrapper::stridedBatchedGemm(cublasOperation_t transa,
                                                 : reinterpret_cast<const void *>(&alpha);
     const void *beta_ptr = is_fp16_computeType ? reinterpret_cast<const void *>(&beta_half) 
                                                : reinterpret_cast<const void *>(&beta);
-
-    int opAm = transa ? k : m;
-    int opAn = transa ? m : k;
-    int opBm = transb ? n : k;
-    int opBn = transb ? k : n;
-    int Cm = transa ? m : opAm;
-    int Cn = transb ? n : opBn;
     
     CHECK_CUBLAS(cublasGemmStridedBatchedEx(cublas_handle_,
                                             transa,
                                             transb,
-                                            Cm,
-                                            Cn,
-                                            opAn,
+                                            m,
+                                            n,
+                                            k,
                                             alpha_ptr,
                                             A,
                                             Atype_,
