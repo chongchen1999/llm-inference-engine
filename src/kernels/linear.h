@@ -9,7 +9,7 @@
 #include "src/utils/macro.h"
 //TODO: when enable int8/int4 weight only, we can add a new type param T2 to represent weight type
 template<typename T>
-void launchLinearGemm(TensorWrapper<T> *input,
+void launchLinearGemm(TensorWrapper<T> *input, 
                       BaseWeight<T> &weight, 
                       TensorWrapper<T> *output,
                       cublasWrapper *cublas_wrapper,
