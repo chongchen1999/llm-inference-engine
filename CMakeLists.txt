@@ -15,13 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/linear.cu
-    ${CMAKE_SOURCE_DIR}/src/kernels/cublas_utils.cc  # Assuming this contains implementation
+    ${CMAKE_SOURCE_DIR}/src/kernels/qkv_bias_and_rope.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_linear.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_bias_and_rope.cu
 )
 
 # Add the executable for the tests
@@ -36,4 +35,4 @@ if(NOT CUDAToolkit_FOUND)
 endif()
 
 # Link CUDA and cuBLAS libraries
-target_link_libraries(test CUDA::cublas CUDA::cuda_driver)
+# target_link_libraries(test CUDA::cublas CUDA::cuda_driver)

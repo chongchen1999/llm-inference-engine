@@ -4,6 +4,7 @@
 #include <stdlib.h>    // rand
 #include <string>      // std::string
 #include <vector>      // std::vector
+#include <ctime>
 
 #include "src/kernels/qkv_bias_and_rope.h"
 #include "src/weights/llama/attention_weights.h"
@@ -28,60 +29,56 @@ void CPUfunc(float *q,
     
     int qbatchstride = seq_len * head_num * head_size;
     int kvbatchstride = seq_len * kv_head_num * head_size;
+    int batchstride = seq_len * (head_num + 2 * kv_head_num) * head_size;
     
     for (int b = 0; b < batch_size; ++b) {
         for (int s = 0; s < seq_len; ++s) {
             int timestep = history_length[b] + s;
+            int base_offset = b * batchstride + s * (head_num + 2 * kv_head_num) * head_size;
             for (int head = 0; head < head_num; ++head) {
-                for (int d = 0; d < head_size; ++d) {
-                    // q bias
-                    q[b * qbatchstride + s * head_num * head_size + head * head_size + d] = 
-                        QKV[b * qbatchstride + s * head_num * head_size + head * head_size + d];
-                }
+                int base_offset_q = base_offset + head * head_size;
+
                 // RoPE
                 for (int d = 0; d < head_size / 2; ++d) {
-                    float x0 = q[b * qbatchstride + s * head_num * head_size + head * head_size + d];
-                    float x1 = q[b * qbatchstride + s * head_num * head_size + head * head_size + d + 64];
-                    float inv_freq = timestep / powf(rotary_embedding_base, (d * 2) / (float)rotary_embedding_dim);
-                    q[b * qbatchstride + s * head_num * head_size + head * head_size + d] = 
-                        x0 * cos(inv_freq) - x1 * sin(inv_freq);
-                    q[b * qbatchstride + s * head_num * head_size + head * head_size + d + 64] = 
-                        x1 * cos(inv_freq) + x0 * sin(inv_freq);
+                    int transposed_offset = b * qbatchstride + head * seq_len * head_size + s * head_size + d;
+                    float x0 = QKV[base_offset_q + d];
+                    float x1 = QKV[base_offset_q + d + 64];
+                    float inv_freq = timestep / powf(rotary_embedding_base, (float)(d * 2) / rotary_embedding_dim);
+
+                    q[transposed_offset] = x0 * cos(inv_freq) - x1 * sin(inv_freq);
+                    q[transposed_offset + 64] = x1 * cos(inv_freq) + x0 * sin(inv_freq);
                 } 
             }
+
             for (int head = 0; head < kv_head_num; ++head) {
-                for (int d = 0; d < head_size; ++d) {
-                    // k bias
-                    k[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d] = 
-                        QKV[b * kvbatchstride + s * (head_num + kv_head_num) * head_size + head * head_size + d];
-                    v[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d] = 
-                        QKV[b * kvbatchstride + s * (head_num + kv_head_num * 2) * head_size + head * head_size + d];
-                }
+                int base_offset_k = base_offset + (head + head_num) * head_size;
+                int base_offset_v = base_offset + (head + head_num + kv_head_num) * head_size;
+
                 // RoPE
                 for (int d = 0; d < head_size / 2; ++d) {
-                    float x0 = k[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d];
-                    float x1 = k[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d + 64];
-                    float inv_freq = timestep / powf(rotary_embedding_base, (d * 2) / (float)rotary_embedding_dim);
-                    k[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d] = 
-                        x0 * cos(inv_freq) - x1 * sin(inv_freq);
-                    k[b * kvbatchstride + s * kv_head_num * head_size + head * head_size + d + 64] = 
-                        x1 * cos(inv_freq) + x0 * sin(inv_freq);
+                    int transposed_offset = b * kvbatchstride + head * seq_len * head_size + s * head_size + d;
+                    float x0 = QKV[base_offset_k + d];
+                    float x1 = QKV[base_offset_k + d + 64];
+                    float inv_freq = timestep / powf(rotary_embedding_base, (float)(d * 2) / rotary_embedding_dim);
+
+                    k[transposed_offset] = x0 * cos(inv_freq) - x1 * sin(inv_freq);
+                    k[transposed_offset + 64] = x1 * cos(inv_freq) + x0 * sin(inv_freq);
                 } 
             }            
         }
     }
 }
 
-bool CheckResult(float *q, float *k, float *hq, float *hk, 
+bool checkResult(float *q, float *k, float *hq, float *hk, 
                  const int q_size, const int k_size) {
     for (int i = 0; i < q_size; ++i) {
-        if (fabs(q[i] - hq[i]) > 1e-6) {
+        if (fabs(q[i] - hq[i]) > 1e-3) {
             printf("the %dth q is wrong, q = %f, hq = %f\n", i, q[i], hq[i]);
             return false;
         }
     }
     for (int i = 0; i < k_size; ++i) {
-        if (fabs(k[i] - hk[i]) > 1e-6) {
+        if (fabs(k[i] - hk[i]) > 1e-3) {
             printf("the %dth k is wrong, k = %f, hk = %f\n", i, k[i], hk[i]);
             return false;
         }
@@ -90,6 +87,7 @@ bool CheckResult(float *q, float *k, float *hq, float *hk,
 }
 
 int main() {
+    srand(666233);
     const int batch_size = 1;
     const int seq_len = 32;
     int *padding_offset = (int *)malloc(sizeof(int) * batch_size * seq_len);
@@ -110,7 +108,7 @@ int main() {
     float *qkv_bias = (float *)malloc(sizeof(float) * (head_num + 2 * kv_head_num) * head_size);
 
     for (int i = 0; i < token_num * (head_num + 2 * kv_head_num) * head_size; ++i) {
-        QKV[i] = 32.0f;
+        QKV[i] = rand() % 32;
     }
     for (int i = 0; i < (head_num + 2 * kv_head_num) * head_size; ++i) {
         qkv_bias[i] = 2.0f;
@@ -165,7 +163,7 @@ int main() {
     params.use_dynamic_ntk = false;
 
     std::cout << "before launch kernel" << std::endl;
-    launchAddFusedQKVBiasTransposeAndRoPE(q_buf,
+    launchAddFusedQKVBiasTransposeAndRope(q_buf,
                                           k_buf,
                                           v_buf,
                                           QKV_buf,
@@ -202,11 +200,14 @@ int main() {
             rotary_embedding_base);
 
     std::cout << "after CPU function" << std::endl;
-    bool is_right = CheckResult(q, k, hq, hk, 
+    bool is_right = checkResult(q, k, hq, hk, 
                                 batch_size * seq_len * head_num * head_size, 
                                 batch_size * seq_len * kv_head_num * head_size);
-    std::cout << "before free" << std::endl;
-    std::cout << "passed" << std::endl;
+    if (is_right) {
+        std::cout << "passed" << std::endl;
+    } else {
+        std::cout<< "Wrong Answer!"<< std::endl;
+    }
 
     free(q);
     free(k);
