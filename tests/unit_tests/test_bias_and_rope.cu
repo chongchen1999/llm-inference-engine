@@ -239,4 +239,5 @@ int main() {
     cudaFree(dpadding_offset);
     cudaFree(dhistory_length);
     cudaFree(dinput_length);
+    return 0;
 }

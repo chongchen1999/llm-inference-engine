@@ -9,12 +9,12 @@
 // input: qkv_buf : qkv continouns buf when no padding
 // shape = [num_tokens, qkv_head_num, head_size], 因为各句子长度不一，所以不用bs * seqlen表示
 // output: q shape = [bs, head num, seqlen, head size], if k v is this shape, maybe need tranpose in successor steps, ep in cublas
-//         k/v shape = [bs, kv head num, seqlen, head size]
+// kv shape = [bs, kv head num, seqlen, head size]
 // ps: seqlen = max_q_len here
 #include <math.h>
 #include <stdio.h>
-#include "src/utils/cuda_debug_utils.cuh"
-#include "src/kernels/qkv_bias_and_RoPE.h"
+// #include "src/utils/cuda_debug_utils.cuh"
+#include "src/kernels/qkv_bias_and_rope.h"
 // HF python code:
 //    def _compute_inv_freq(self, base: Union[int, float]) -> torch.Tensor:
 //         """Compute the inverse frequency."""
@@ -35,7 +35,7 @@
 //         sin = freqs.sin()
 //         cache = torch.cat((cos, sin), dim=-1)
 //         return cache
-__device__ __forceinline__ float2 getRoPEfreq(int zid, int rot_embed_dim, float base, float t_step) {
+__device__ __forceinline__ float2 getRopeFreq(int zid, int rot_embed_dim, float base, float t_step) {
     // note: 每个token所属的id, 它的freq值都是固定的, id的上限为max position embedding
     // t_step表示token id（这里考虑了多轮对话历史上下文长度)
     // 每个freq值对应于zid = head size维度上0 2 4 6 ... 64带入下式计算
@@ -43,12 +43,13 @@ __device__ __forceinline__ float2 getRoPEfreq(int zid, int rot_embed_dim, float 
     return {cos(inv_freq), sin(inv_freq)};
 }
 
-__device__ __forceinline__ float2 getRoPEres(float data, float data_rotate, const float2 coef) {
+__device__ __forceinline__ float2 getRopeRes(float data, float data_rotate, const float2 coef) {
     float2 rot_v;
     rot_v.x = coef.x * data - coef.y * data_rotate;
     rot_v.y = coef.x * data_rotate + coef.y * data;
     return rot_v;
 }
+
 // inline __device__ float2 GetRoPEres(const float2 v, const float2 coef)
 // {
 //     float2 rot_v;
@@ -104,6 +105,7 @@ __device__ __forceinline__ float2 getRoPEres(float data, float data_rotate, cons
 //     k_.x = GetRoPEres(k_.x, coef0);
 //     k_.y = GetRoPEres(k_.y, coef1);
 // }
+
 template <typename T>
 __global__ void addFusedQKVBiasTransposeKernel(T *q_buf,
                                                T *k_buf,
@@ -149,23 +151,22 @@ __global__ void addFusedQKVBiasTransposeKernel(T *q_buf,
     int dst_kv_id = batch_id * seq_len * kv_head_num * head_size +
                     head_id * seq_len * head_size +
                     local_token_id * head_size + tid;
-    if (head_id < kv_head_num)
-    { // (RussWong)note: for MQA and GQA
+    if (head_id < kv_head_num) { // note: for MQA and GQA
         v_buf[dst_kv_id] = v;
     }
     // 3. RoPE
     const int cur_seq_history_len = history_length[batch_id];
     const int context_length = cur_seq_history_len + input_length[batch_id];
-    //（RussWong)note: 多轮对话下要结合history length求得全局的cos和sin
+    // ()note: 多轮对话下要结合history length求得全局的cos和sin
     const int timestep = cur_seq_history_len + local_token_id; 
-    // (RussWong)note: timestep为cos(m*theta)中的m
+    // ()note: timestep为cos(m*theta)中的m
     if (tid >= rotary_embedding_dim / 2)
     {
         return;
     } // tid = [0,1,2,...,63]
 
-    float2 cos_sin = getRoPEfreq(tid * 2, rotary_embedding_dim, rotary_embedding_base, timestep);
-    // (RussWong)note: print cos and sin of each token id, this is nothing to do with concrete input id
+    float2 cos_sin = getRopeFreq(tid * 2, rotary_embedding_dim, rotary_embedding_base, timestep);
+    // ()note: print cos and sin of each token id, this is nothing to do with concrete input id
     //if(token_id == 2 && head_id == 0 && tid == 0)
    // {
     //    printf("tokenid=2, cos_sin res:\n");
@@ -176,19 +177,18 @@ __global__ void addFusedQKVBiasTransposeKernel(T *q_buf,
     //    printf("tokenid=1, cos_sin res:\n");
     //    printf("cos: %f, sin:%f\n", cos_sin.x, cos_sin.y);
     //}
-    float2 q_rotate = getRoPEres(QKV[q_id], QKV[q_id + head_size / 2], cos_sin);
-    float2 k_rotate = getRoPEres(QKV[k_id], QKV[k_id + head_size / 2], cos_sin);
-    // (RussWong)note: write result back into q k v
+    float2 q_rotate = getRopeRes(QKV[q_id], QKV[q_id + head_size / 2], cos_sin);
+    float2 k_rotate = getRopeRes(QKV[k_id], QKV[k_id + head_size / 2], cos_sin);
+    // ()note: write result back into q k v
     q_buf[dst_q_id] = q_rotate.x;
     q_buf[dst_q_id + head_size / 2] = q_rotate.y;
-    if (head_id < kv_head_num)
-    { // for MQA and GQA
+    if (head_id < kv_head_num) { // for MQA and GQA
         k_buf[dst_kv_id] = k_rotate.x;
         k_buf[dst_kv_id + head_size / 2] = k_rotate.y;
     }
 }
 
-template <>
+template <typename T>
 __global__ void addFusedQKVBiasTransposeKernel(T *q_buf,
                                                T *k_buf,
                                                T *v_buf,
@@ -333,6 +333,7 @@ template void launchAddFusedQKVBiasTransposeAndRoPE(TensorWrapper<float> *q_buf,
                                                     TensorWrapper<int> *history_length,
                                                     TensorWrapper<int> *input_length,
                                                     LLaMAAttentionStaticParams &params);
+
 template void launchAddFusedQKVBiasTransposeAndRoPE(TensorWrapper<half> *q_buf,
                                                     TensorWrapper<half> *k_buf,
                                                     TensorWrapper<half> *v_buf,
@@ -343,7 +344,7 @@ template void launchAddFusedQKVBiasTransposeAndRoPE(TensorWrapper<half> *q_buf,
                                                     TensorWrapper<int> *input_length,
                                                     LLaMAAttentionStaticParams &params);
 
-// (RussWong)note: this kernel is called in self decoder, not context decoder
+// note: this kernel is called in self decoder, not context decoder
 template<typename T>
 __global__ void rope_kernel_for_self_decoder(T* q,
                     T* k,
@@ -372,8 +373,8 @@ __global__ void rope_kernel_for_self_decoder(T* q,
     // RoPE
     float k_reg = k[k_offset];
     float k_rotate_reg = k[k_offset + head_size / 2];
-    float2 cos_sin = getRoPEfreq(tid * 2, rotary_embedding_dim, rotary_embedding_base, step - 1);
-    float2 q_rotate = getRoPEres(q[q_offset], q[q_offset + head_size / 2], cos_sin);
+    float2 cos_sin = getRopeFreq(tid * 2, rotary_embedding_dim, rotary_embedding_base, step - 1);
+    float2 q_rotate = getRopeRes(q[q_offset], q[q_offset + head_size / 2], cos_sin);
     float2 k_rotate = make_float2(0,0);
     k_rotate.x = cos_sin.x * k_reg - cos_sin.y * k_rotate_reg;
     k_rotate.y = cos_sin.x * k_rotate_reg + cos_sin.y * k_reg;
