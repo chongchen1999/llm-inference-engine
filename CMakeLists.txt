@@ -15,12 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/fused_trans_and_rmv_pad.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/fused_rsd_and_norm.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_fused_trans_and_rmv_pad.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_fused_rsd_and_norm.cu
 )
 
 # Add the executable for the tests
