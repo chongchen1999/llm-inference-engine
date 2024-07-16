@@ -66,7 +66,7 @@ void launchLinearGemm(TensorWrapper<T> *input,
     // cublas retuen CT in col-major, that is C in row-major
     cublas_wrapper->gemm(transA,
                          transB,
-                         Cn, // m
+                         Cn,
                          Cm,               
                          opAn,
                          weight.data,
