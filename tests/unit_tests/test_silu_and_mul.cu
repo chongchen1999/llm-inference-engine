@@ -27,7 +27,7 @@ void CPUSwiGLU(T *input, T *output, int batch_size, int intermedia_size) {
 }
 
 template<typename T>
-bool CheckResult(T *CPUoutput, T *GPUoutput, int output_size) {
+bool checkResult(T *CPUoutput, T *GPUoutput, int output_size) {
     for (int i = 0; i < output_size; ++i) {
         if (fabs(static_cast<float>(CPUoutput[i]) - static_cast<float>(GPUoutput[i])) > 1e-6) {
             printf("The %dth result is wrong, CPUoutput = %f, GPUoutput = %f\n", i, static_cast<float>(CPUoutput[i]), static_cast<float>(GPUoutput[i]));
@@ -64,7 +64,7 @@ void test_act(int batch_size, int intermedia_size, int input_size, int output_si
     T *CPU_output = static_cast<T *>(malloc(sizeof(T) * output_size));
     CPUSwiGLU(h_input, CPU_output, batch_size, intermedia_size);
     
-    bool is_true = CheckResult(CPU_output, h_output, output_size);
+    bool is_true = checkResult(CPU_output, h_output, output_size);
     if (is_true) {
         printf("Test passed\n");
     } else {
