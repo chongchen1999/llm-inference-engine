@@ -15,12 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/qkv_bias_and_rope.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/concat_kv.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_bias_and_rope.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_concat_kv.cu
 )
 
 # Add the executable for the tests
