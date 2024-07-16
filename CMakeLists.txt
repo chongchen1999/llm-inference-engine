@@ -15,12 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/repeat_kv.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/attn_softmax.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_repeat_kv.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_mask_softmax.cu
 )
 
 # Add the executable for the tests

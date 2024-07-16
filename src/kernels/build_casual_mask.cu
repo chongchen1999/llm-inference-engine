@@ -1,4 +1,4 @@
-#include "src/kernels/build_casual_mask.h"
+#include "src/kernels/includes/build_casual_mask.h"
 // mask shape =  [bs, max_q_len, max_k_len]
 template<typename T>
 __global__ void buildCausalMasks(T *mask, // [bs, max_q_len, max_k_len]

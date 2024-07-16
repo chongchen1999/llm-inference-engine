@@ -15,7 +15,7 @@
 #include <math.h>
 #include <stdio.h>
 // #include "src/utils/cuda_debug_utils.cuh"
-#include "src/kernels/qkv_bias_and_rope.h"
+#include "src/kernels/includes/qkv_bias_and_rope.h"
 // HF python code:
 //    def _compute_inv_freq(self, base: Union[int, float]) -> torch.Tensor:
 //         """Compute the inverse frequency."""

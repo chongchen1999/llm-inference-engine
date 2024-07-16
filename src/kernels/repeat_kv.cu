@@ -1,4 +1,4 @@
-#include "src/kernels/repeat_kv.h"
+#include "src/kernels/includes/repeat_kv.h"
 // #include "src/utils/cuda_debug_utils.cuh"
 #include <iostream>
 // if MQA or GQA, we should use this transpose to broadcast kv head num to q head num

@@ -1,4 +1,4 @@
-#include "src/kernels/cublas_utils.h"
+#include "src/kernels/includes/cublas_utils.h"
 #include <iostream>
 
 // notes: cublas gemm and strided batch gemm function calls are fairly fixed

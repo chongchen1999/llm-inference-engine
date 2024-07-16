@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "src/kernels/linear.h"
+#include "src/kernels/includes/linear.h"
 
 /*
 All matmul cases:

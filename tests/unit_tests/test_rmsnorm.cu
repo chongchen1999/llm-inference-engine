@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
-#include "src/kernels/rmsnorm.h"
+#include "src/kernels/includes/rmsnorm.h"
 
 #define CHECK(call)                                   \
 do                                                    \

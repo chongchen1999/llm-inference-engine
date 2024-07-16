@@ -1,4 +1,4 @@
-#include "src/kernels/cal_padding_offset.h"
+#include "src/kernels/includes/cal_padding_offset.h"
 // shape:
     //seq_lengths:[batch size]
     //cum_seqlens:[batch size + 1],first ele is 0

@@ -8,7 +8,7 @@
 #include <fstream>
 #include <ctime>
 #include "src/utils/macro.h"
-#include "src/kernels/linear.h"
+#include "src/kernels/includes/linear.h"
 #include "src/weights/base_weights.h"
 
 void CPUlinear(float *input, float *weight, float *output,

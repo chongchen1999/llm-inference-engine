@@ -6,7 +6,7 @@
 #include <vector>      // std::vector
 #include <ctime>
 
-#include "src/kernels/qkv_bias_and_rope.h"
+#include "src/kernels/includes/qkv_bias_and_rope.h"
 #include "src/weights/llama/attention_weights.h"
 #include "src/utils/macro.h"
 

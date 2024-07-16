@@ -6,7 +6,7 @@
 #include <vector>      // std::vector
 #include <cuda_runtime.h>
 
-#include "src/kernels/build_casual_mask.h"
+#include "src/kernels/includes/build_casual_mask.h"
 
 // Implement LLMs inference on CPU, reusing the CPU kernel
 // Compare kernel correctness by visual inspection and printed result info
