@@ -15,12 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/fused_decoder_and_self_attn.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/topk.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_fused_decoder_and_self_attn.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_topk.cu
 )
 
 # Add the executable for the tests
