@@ -156,7 +156,7 @@ int main() {
     TensorWrapper<int> *input_length_buf = new TensorWrapper<int>(Device::GPU, type_int, {batch_size}, dinput_length);
     TensorWrapper<int> *history_length_buf = new TensorWrapper<int>(Device::GPU, type_int, {batch_size}, dhistory_length);
     TensorWrapper<int> *padding_offset_buf = new TensorWrapper<int>(Device::GPU, type_int, {batch_size, seq_len}, dpadding_offset);
-    LLaMAAttentionStaticParams params;
+    LlamaAttentionStaticParams params;
     params.rotary_embedding_dim = rotary_embedding_dim;
     params.rotary_embedding_base = rotary_embedding_base;
     params.max_position_embeddings = max_position_embeddings;

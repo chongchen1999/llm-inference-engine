@@ -1,6 +1,6 @@
 #pragma once
 
-struct LLaMAAttentionStaticParams {
+struct LlamaAttentionStaticParams {
     int rotary_embedding_dim;
     float rotary_embedding_base;
     int max_position_embeddings;
@@ -8,7 +8,7 @@ struct LLaMAAttentionStaticParams {
 };
 
 // ()note: llama类模型里面动态改变的变量, 注意非全部必需
-struct LLaMAAttentionDynParams {
+struct LlamaAttentionDynamicParams {
     int batch_size;
     int num_tokens;
     int max_q_len;

@@ -41,7 +41,7 @@ void CPUfusedresidandRMSNorm(float *h_decoder_out, float *h_weights,
 }
 
 template<typename T>
-bool CheckResult(float *CPU_output, T *GPU_output, int output_size) {
+bool checkResult(float *CPU_output, T *GPU_output, int output_size) {
     for (int i = 0; i < output_size; ++i) {
         float fp32GPUoutput = static_cast<float>(GPU_output[i]);
         if (std::fabs(CPU_output[i] - fp32GPUoutput) > 1e-3) {
@@ -121,7 +121,7 @@ void runTest() {
     }
 
     CPUfusedresidandRMSNorm(CPUout.data(), cpu_weights.data(), eps, hidden_units, num_tokens);
-    bool is_right = CheckResult<T>(CPUout.data(), gpu_decoder_out.data(), total_size);
+    bool is_right = checkResult<T>(CPUout.data(), gpu_decoder_out.data(), total_size);
 
     if (is_right) {
         std::cout << "RMSNorm passed\n";

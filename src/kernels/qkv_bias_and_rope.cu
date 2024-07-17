@@ -136,7 +136,7 @@ void launchAddFusedQKVBiasTransposeAndRope(TensorWrapper<T> *q_buf,
                                            TensorWrapper<int> *padding_offset,
                                            TensorWrapper<int> *history_length,
                                            TensorWrapper<int> *input_length,
-                                           LLaMAAttentionStaticParams &params) {
+                                           LlamaAttentionStaticParams &params) {
     int token_num = QKV->shape[0];
     int qkv_head_num = QKV->shape[1];
     int head_size = QKV->shape[2];
@@ -183,7 +183,7 @@ template void launchAddFusedQKVBiasTransposeAndRope(TensorWrapper<float> *q_buf,
                                                     TensorWrapper<int> *padding_offset,
                                                     TensorWrapper<int> *history_length,
                                                     TensorWrapper<int> *input_length,
-                                                    LLaMAAttentionStaticParams &params);
+                                                    LlamaAttentionStaticParams &params);
 
 template void launchAddFusedQKVBiasTransposeAndRope(TensorWrapper<half> *q_buf,
                                                     TensorWrapper<half> *k_buf,
@@ -193,7 +193,7 @@ template void launchAddFusedQKVBiasTransposeAndRope(TensorWrapper<half> *q_buf,
                                                     TensorWrapper<int> *padding_offset,
                                                     TensorWrapper<int> *history_length,
                                                     TensorWrapper<int> *input_length,
-                                                    LLaMAAttentionStaticParams &params);
+                                                    LlamaAttentionStaticParams &params);
 
 // note: this kernel is called in self decoder, not context decoder
 template<typename T>
@@ -251,7 +251,7 @@ __global__ void rope_kernel_for_self_decoder(half* q,
 template<typename T>
 void launchRope(TensorWrapper<T>* qkv_buf,
                 TensorWrapper<int>* step,
-                LLaMAAttentionStaticParams& static_params) {
+                LlamaAttentionStaticParams& static_params) {
     const int batch_size = qkv_buf->shape[0];
     const int qkv_head_num = qkv_buf->shape[1];
     int head_num = 32; // only for llama
@@ -286,8 +286,8 @@ void launchRope(TensorWrapper<T>* qkv_buf,
 
 template void launchRope(TensorWrapper<float> *qkv_buf,
                          TensorWrapper<int> *step,
-                         LLaMAAttentionStaticParams &static_params);
+                         LlamaAttentionStaticParams &static_params);
 
 template void launchRope(TensorWrapper<half> *qkv_buf,
                          TensorWrapper<int> *step,
-                         LLaMAAttentionStaticParams &static_params);
+                         LlamaAttentionStaticParams &static_params);
