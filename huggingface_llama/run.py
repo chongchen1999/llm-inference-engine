@@ -1,28 +1,29 @@
+import torch
+from transformers import AutoTokenizer, LlamaForCausalLM
 
-from transformers import AutoTokenizer
-import transformers
+# Load model and tokenizer
+model_path = "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf-16"
+print("1")
 
-model = "model_zoo/llama-2-7b"
+model = LlamaForCausalLM.from_pretrained(model_path).to('cuda')
+print("2")
 
-tokenizer = AutoTokenizer.from_pretrained(model)
-pipeline = transformers.pipeline(
-    "text-generation",
-    model=model,
-    torch_dtype=None,
-    device_map = "cuda:0"
-)
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+print("3")
 
-prompt = "Write python code to reverse a string"
+# Define prompt
+prompt = "Hey, are you conscious? Can you talk to me?"
 
-sequences = pipeline(
-    prompt,
-    do_sample=True,
-    top_k=10,
-    temperature=0.1,
-    top_p=0.95,
-    num_return_sequences=1,
-    eos_token_id=tokenizer.eos_token_id,
-    max_length=200,
-)
-for seq in sequences:
-    print(f"Result: {seq['generated_text']}")
+# Tokenize input
+inputs = tokenizer(prompt, return_tensors="pt").to('cuda')
+print(inputs)
+print("4")
+
+# Generate response
+generate_ids = model.generate(inputs.input_ids, max_length=30)
+
+# Decode generated token IDs back into a string
+output = tokenizer.decode(generate_ids[0], skip_special_tokens=True)
+
+# Print the output
+print(output)
