@@ -178,7 +178,7 @@ __global__ void scaleMaskAndSoftmax_half(T_half *attn_score,
     }
 }
 
-template <typename T>
+/*template <typename T>
 void launchScaleMaskAndSoftmax(TensorWrapper<T> *qk,
                                TensorWrapper<T> *mask,
                                TensorWrapper<T> *attn_score,
@@ -294,6 +294,47 @@ void launchScaleMaskAndSoftmax(TensorWrapper<T> *qk,
 #ifdef PRINT_DATA
     print_data<<<1, 1>>>(attn_score->data);
 #endif
+}*/
+
+template <typename T>  
+void launchScaleMaskAndSoftmax(TensorWrapper<T>* qk, TensorWrapper<T>* mask, TensorWrapper<T>* attn_score, float scale) {  
+    int q_length = qk->shape[2];  
+    int batch_size = qk->shape[0];  
+    int head_nums = qk->shape[1];  
+    int k_length = qk->shape[3];  
+  
+    bool is_half = sizeof(T) == 2;  
+  
+    if (is_half) {  
+        assert(k_length % 2 == 0 && "Currently, K_len should be divided by 2 under half type!");  
+    }  
+  
+    dim3 grid(q_length, batch_size, head_nums);  
+    dim3 block;  
+  
+    if (k_length > 8192) {  
+        // For very large k_length, adjust block size and grid accordingly  
+        // This part is hypothetical since the original macro didn't handle this case  
+        // Adjust based on actual requirements  
+    } else if (k_length > 4096) {  
+        block.x = ((k_length / (4 * (is_half ? 2 : 1))) + 32 - 1) / 32 * 32;  
+        assert(block.x < 1024);  
+        ScaleMaskAndSoftmax_kernel<T, 4><<<grid, block>>>(attn_score->data, qk->data, mask->data, batch_size, head_nums, q_length, k_length, scale);  
+    } else if (k_length > 2048) {  
+        block.x = ((k_length / (2 * (is_half ? 2 : 1))) + 32 - 1) / 32 * 32;  
+        assert(block.x < 1024);  
+        ScaleMaskAndSoftmax_kernel<T, 2><<<grid, block>>>(attn_score->data, qk->data, mask->data, batch_size, head_nums, q_length, k_length, scale);  
+    } else {  
+        block.x = (k_length / (is_half ? 2 : 1) + 32 - 1) / 32 * 32;  
+        assert(block.x < 1024);  
+        ScaleMaskAndSoftmax_kernel<T, 1><<<grid, block>>>(attn_score->data, qk->data, mask->data, batch_size, head_nums, q_length, k_length, scale);  
+    }  
+  
+#ifdef PRINT_DATA  
+    // Assuming print_data is a kernel defined elsewhere  
+    print_data<<<1, 1>>>(attn_score->data);  
+    cudaDeviceSynchronize(); // Ensure print_data completes before continuing  
+#endif  
 }
 
 template void launchScaleMaskAndSoftmax(TensorWrapper<float> *qk,

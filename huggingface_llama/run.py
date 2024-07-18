@@ -2,14 +2,19 @@ import torch
 from transformers import AutoTokenizer, LlamaForCausalLM
 
 # Load model and tokenizer
-model_path = "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf-16"
-print("1")
+model_path = "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/Llama-2-7b-chat-hf-4bit"
 
-model = LlamaForCausalLM.from_pretrained(model_path).to('cuda')
-print("2")
-
+if torch.cuda.is_available():
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        load_in_4bit=True,
+        local_files_only=True,
+        torch_dtype=torch.float16,
+        device_map='auto'
+    )
+else:
+    model = None
 tokenizer = AutoTokenizer.from_pretrained(model_path)
-print("3")
 
 # Define prompt
 prompt = "Hey, are you conscious? Can you talk to me?"
