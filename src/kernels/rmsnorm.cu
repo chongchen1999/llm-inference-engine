@@ -38,7 +38,7 @@ __device__ T blockReduceSum(T val) {
 template <typename T>
 __global__ void RMSNorm(T *decoder_out, // [num tokens, q_hidden_units]
                         T *decoder_residual, // [num tokens, q_hidden_units]
-                        T *weights, // [hidden_units], aka gamma
+                        const T *weights, // [hidden_units], aka gamma
                         float eps, int num_tokens, int hidden_units) {
     const int vec_size = Vec<T>::size;
     using Vec_t = typename Vec<T>::Type;
@@ -63,7 +63,7 @@ __global__ void RMSNorm(T *decoder_out, // [num tokens, q_hidden_units]
     }
     __syncthreads();
     
-    auto vec_weights = reinterpret_cast<Vec_t *>(weights);
+    auto vec_weights = reinterpret_cast<Vec_t *>(const_cast<T *>(weights));
 
     #pragma unroll
     for (int idx = threadIdx.x; idx < hidden_units / vec_size; idx += blockDim.x) {
@@ -82,7 +82,7 @@ __global__ void RMSNorm(T *decoder_out, // [num tokens, q_hidden_units]
 template<>
 __global__ void RMSNorm(half *decoder_out, // [num tokens, q_hidden_units]
                         half *decoder_residual, // [num tokens, q_hidden_units]
-                        half *weights, //[hidden_units]
+                        const half *weights, //[hidden_units]
                         float eps, int num_tokens, int hidden_units) {
     int vec_size = Vec<half>::size;
     using Vec_t = typename Vec<half>::Type;
@@ -111,7 +111,7 @@ __global__ void RMSNorm(half *decoder_out, // [num tokens, q_hidden_units]
     }
     __syncthreads();
     // rmsnorm
-    auto vec_weights = reinterpret_cast<Vec_t *>(weights);
+    auto vec_weights = reinterpret_cast<Vec_t *>(const_cast<half *>(weights));
     for (int i = threadIdx.x; i < hidden_units / vec_size; i += blockDim.x) {
         Vec_t dout_half2 =vec_dout[i];
         vec_dout[i].x = vec_weights[i].x * __float2half(__half2float(dout_half2.x) * inv_fenmu);
