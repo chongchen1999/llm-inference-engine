@@ -15,12 +15,12 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/rmsnorm.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/build_causal_mask.cu
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_rmsnorm.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_build_causal_mask.cu
 )
 
 # Add the executable for the tests

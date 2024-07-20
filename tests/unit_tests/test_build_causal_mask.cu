@@ -6,11 +6,11 @@
 #include <vector>      // std::vector
 #include <cuda_runtime.h>
 
-#include "src/kernels/includes/build_casual_mask.h"
+#include "src/kernels/includes/build_causal_mask.h"
 
 // Implement LLMs inference on CPU, reusing the CPU kernel
 // Compare kernel correctness by visual inspection and printed result info
-void CPUbuildCasualMask(float *mask, 
+void CPUbuildCausalMask(float *mask, 
                         const int *q_lens,  // input lens, shape=[batch size]
                         const int *k_lens,  // context lens, shape=[batch size]
                         int max_q_len, int max_k_len, int batch_size) {
@@ -30,7 +30,7 @@ void CPUbuildCasualMask(float *mask,
     }
 }
 
-bool CheckResult(const float * const &CPUres, const float * const &GPUres, int size) {
+bool checkResult(const float * const &CPUres, const float * const &GPUres, int size) {
     for (int i = 0; i < size; ++i) {
         if (std::fabs(CPUres[i] - GPUres[i]) > 1e-3) {
             printf("The %dth result is wrong, CPU mask = %f, GPU mask = %f\n", i, CPUres[i], GPUres[i]);
@@ -90,9 +90,9 @@ int main() {
     CHECK(cudaMemcpy(h_mask, d_mask, sizeof(float) * mask_size, cudaMemcpyDeviceToHost));
 
     float *CPUmask = (float *)malloc(sizeof(float) * mask_size);
-    CPUbuildCasualMask(CPUmask, h_q_lens, h_k_lens, max_q_len, max_k_len, batch_size);
+    CPUbuildCausalMask(CPUmask, h_q_lens, h_k_lens, max_q_len, max_k_len, batch_size);
 
-    if (CheckResult(CPUmask, h_mask, mask_size)) {
+    if (checkResult(CPUmask, h_mask, mask_size)) {
         printf("Test passed!\n");
     }
 

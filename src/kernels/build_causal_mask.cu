@@ -1,4 +1,4 @@
-#include "src/kernels/includes/build_casual_mask.h"
+#include "src/kernels/includes/build_causal_mask.h"
 // mask shape =  [bs, max_q_len, max_k_len]
 template<typename T>
 __global__ void buildCausalMasks(T *mask, // [bs, max_q_len, max_k_len]
@@ -26,7 +26,8 @@ void launchBuildCausalMasks(TensorWrapper<T> *mask,
     int max_q_len = mask->shape[1];
     int max_k_len = mask->shape[2];
     buildCausalMasks<T><<<batch_size, 512>>>(mask->data, 
-                                             q_lens->data, k_lens->data, 
+                                             q_lens->data, 
+                                             k_lens->data, 
                                              max_q_len, max_k_len);
 }
 
