@@ -72,10 +72,10 @@ int main(int argc, char *argv[]) {
     TensorWrapper<float> *in = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_input);
     //print_mat(host_input, seqlen, hidden_units);
 
-    BaseWeight<float> weight;
-    weight.shape = {hidden_units, hidden_units};
-    weight.data = device_weights;
-    weight.type = wtype;
+    BaseWeight<float> *weight;
+    weight->shape = {hidden_units, hidden_units};
+    weight->data = device_weights;
+    weight->type = wtype;
 
     TensorWrapper<float> *out;
     out = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_output);

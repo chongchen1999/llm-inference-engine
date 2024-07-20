@@ -96,7 +96,7 @@ void runTest() {
     weight.gamma = d_weights;
 
     std::cout << "Before launch kernel\n";
-    launchRMSNorm(&decoder_out_tensor, &decoder_rsd, weight, eps);
+    launchRMSNorm(&decoder_out_tensor, &decoder_rsd, &weight, eps);
     std::cout << "After launch kernel\n";
     std::cout << "CUDA memcpy device to host\n";
 

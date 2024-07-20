@@ -122,7 +122,7 @@ __global__ void RMSNorm(half *decoder_out, // [num tokens, q_hidden_units]
 template<typename T>
 void launchRMSNorm(TensorWrapper<T> *decoder_out, // [num tokens, hidden_units]
                    TensorWrapper<T> *decoder_residual, // [num tokens, hidden_units]
-                   LayerNormWeight<T> &attn_norm_weight, // [hidden_units]
+                   LayerNormWeight<T> *attn_norm_weight, // [hidden_units]
                    float eps, bool is_last) {
     int num_tokens = decoder_out->shape[0];
     int hidden_units = decoder_out->shape[1];
@@ -132,7 +132,7 @@ void launchRMSNorm(TensorWrapper<T> *decoder_out, // [num tokens, hidden_units]
     dim3 block(num_threads);
     RMSNorm<T><<<grid, block>>>(decoder_out->data, 
                                 decoder_residual->data,
-                                attn_norm_weight.gamma,
+                                attn_norm_weight->gamma,
                                 eps, num_tokens, hidden_units);
 #ifdef PRINT_DATA
     print_data<<<1, 1>>>(decoder_out->data);
@@ -142,10 +142,10 @@ void launchRMSNorm(TensorWrapper<T> *decoder_out, // [num tokens, hidden_units]
 
 template void launchRMSNorm(TensorWrapper<float> *decoder_out, // [num tokens, hidden_units]
                             TensorWrapper<float> *decoder_residual,
-                            LayerNormWeight<float> &attn_norm_weight,
+                            LayerNormWeight<float> *attn_norm_weight,
                             float eps, bool is_last);
 
 template void launchRMSNorm(TensorWrapper<half> *decoder_out, // [num tokens, hidden_units]
                             TensorWrapper<half> *decoder_residual,
-                            LayerNormWeight<half> &attn_norm_weight,
+                            LayerNormWeight<half> *attn_norm_weight,
                             float eps, bool is_last);
