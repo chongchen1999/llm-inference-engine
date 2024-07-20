@@ -16,26 +16,7 @@
 #include <stdio.h>
 // #include "src/utils/cuda_debug_utils.cuh"
 #include "src/kernels/includes/qkv_bias_and_rope.h"
-// HF python code:
-//    def _compute_inv_freq(self, base: Union[int, float]) -> torch.Tensor:
-//         """Compute the inverse frequency."""
-//         inv_freq = 1.0 / (base**(torch.arange(
-//             0, self.rotary_dim, 2, dtype=torch.float, device="cuda") /
-//                                  self.rotary_dim))
-//         return inv_freq
 
-//     def _compute_cos_sin_cache(self) -> torch.Tensor:
-//         """Compute the cos and sin cache."""
-//         inv_freq = self._compute_inv_freq(self.base)
-//         t = torch.arange(self.max_position_embeddings,
-//                          dtype=torch.float,
-//                          device="cuda")
-
-//         freqs = torch.einsum("i,j -> ij", t, inv_freq)
-//         cos = freqs.cos() // 2048，64
-//         sin = freqs.sin()
-//         cache = torch.cat((cos, sin), dim=-1)
-//         return cache
 __device__ __forceinline__ float2 getRopeFreqCosisin(int zid, int rot_embed_dim, float base, float t_step) {
     const float inv_freq = t_step / powf(base, (float)zid / rot_embed_dim);
     return {cos(inv_freq), sin(inv_freq)};
