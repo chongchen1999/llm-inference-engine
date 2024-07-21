@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
@@ -7,19 +8,24 @@
 #include "src/weights/base_weights.h"
 #include "src/utils/vectorize_utils.h"
 
+// Applies bias to QKV tensors, performs transposition, and applies RoPE.
 template<typename T>
-void launchAddFusedQKVBiasTransposeAndRope(TensorWrapper<T> *q_buf,
-                                           TensorWrapper<T> *k_buf,
-                                           TensorWrapper<T> *v_buf,
-                                           TensorWrapper<T> *QKV,
-                                           BaseWeight<T> &qkv, // output
-                                           //Tensor *qkv_bias,
-                                           TensorWrapper<int> *padding_offset,
-                                           TensorWrapper<int> *history_length,
-                                           TensorWrapper<int> *input_length,
-                                           LlamaAttentionStaticParams &params);
+void launchFusedQKVAddBiasAndTransposeAndRope(
+    TensorWrapper<T> *q_buf,              // Output buffer for Q after RoPE and transposition
+    TensorWrapper<T> *k_buf,              // Output buffer for K after RoPE and transposition
+    TensorWrapper<T> *v_buf,              // Output buffer for V after transposition
+    TensorWrapper<T> *QKV,                // Input buffer containing Q, K, V
+    BaseWeight<T> *qkv,                   // Bias weights for QKV
+    TensorWrapper<int> *padding_offset,   // Padding offsets for token sequences
+    TensorWrapper<int> *history_length,   // History length for each batch
+    TensorWrapper<int> *input_length,     // Actual input length of each sequence
+    LlamaAttentionStaticParams *params    // Parameters for RoPE and other settings
+);
 
+// Applies RoPE (Rotary Positional Encoding) to the QKV buffer.
 template<typename T>
-void launchRope(TensorWrapper<T> *qkv_buf,
-                TensorWrapper<int> *step,
-                LlamaAttentionStaticParams &static_params);
+void launchRope(
+    TensorWrapper<T> *qkv_buf,            // Input buffer containing QKV
+    TensorWrapper<int> *step,             // Current step in the sequence
+    LlamaAttentionStaticParams *static_params // Parameters for RoPE and other settings
+);

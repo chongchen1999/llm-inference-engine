@@ -2,7 +2,7 @@
 #include "src/weights/base_weights.h"
 
 template<typename T>
-struct LLaMAattentionWeights {
+struct LlamaAttentionWeights {
     BaseWeight<T> q;
     BaseWeight<T> k;
     BaseWeight<T> v;
