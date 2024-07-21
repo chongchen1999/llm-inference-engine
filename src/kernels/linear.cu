@@ -20,14 +20,14 @@ down: [bs/token nums, intersize] * [qhiddenunits, intersize] = [bs/token nums, q
 // compute y = x * AT, since cublas is col-major, we actually compute yT = A * xT
 template <typename T>
 void launchLinearGemm(TensorWrapper<T> *input,
-                      BaseWeight<T> &weight,
+                      BaseWeight<T> *weight,
                       TensorWrapper<T> *output,
                       cublasWrapper *cublas_wrapper,
                       bool trans_a, bool trans_b) {
     int Am = input->shape[0];
     int An = input->shape[1];
-    int Bm = weight.shape[0];
-    int Bn = weight.shape[1];
+    int Bm = weight->shape[0];
+    int Bn = weight->shape[1];
     int Cm = output->shape[0];
     int Cn = output->shape[1];
     // printf("shape A: %d %d\n", Am, An);
@@ -69,7 +69,7 @@ void launchLinearGemm(TensorWrapper<T> *input,
                          Cn,
                          Cm,               
                          opAn,
-                         weight.data,
+                         weight->data,
                          ldb,         
                          input->data,  
                          lda,          
@@ -149,13 +149,13 @@ void launchLinearStridedBatchGemm(TensorWrapper<T> *input1,
 }
 
 template void launchLinearGemm(TensorWrapper<float> *input,
-                               BaseWeight<float> &weight,
+                               BaseWeight<float> *weight,
                                TensorWrapper<float> *output,
                                cublasWrapper *cublas_wrapper,
                                bool trans_a, bool trans_b);
 
 template void launchLinearGemm(TensorWrapper<half> *input,
-                               BaseWeight<half> &weight,
+                               BaseWeight<half> *weight,
                                TensorWrapper<half> *output,
                                cublasWrapper *cublas_wrapper,
                                bool trans_a, bool trans_b);

@@ -67,15 +67,16 @@ int main(int argc, char *argv[]) {
     CHECK(cudaMemcpy(device_input, host_input, sizeof(float) * hidden_units * seqlen, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(device_weights, host_weights, sizeof(float) * hidden_units_2, cudaMemcpyHostToDevice));
 
+    printf("ok");
+
     DataType type = getTensorType<float>();
     WeightType wtype = getWeightType<float>();
     TensorWrapper<float> *in = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_input);
     //print_mat(host_input, seqlen, hidden_units);
-
-    BaseWeight<float> *weight;
-    weight->shape = {hidden_units, hidden_units};
-    weight->data = device_weights;
-    weight->type = wtype;
+    BaseWeight<float> weight;
+    weight.shape = {hidden_units, hidden_units};
+    weight.data = device_weights;
+    weight.type = wtype;
 
     TensorWrapper<float> *out;
     out = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_output);
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]) {
     cublas_wrapper->setFP32GemmConfig();
 
     std::cout << "before launch kernel" << std::endl;
-    launchLinearGemm(in, weight, out, cublas_wrapper, false, true);
+    launchLinearGemm(in, &weight, out, cublas_wrapper, false, true);
     std::cout << "after launch kernel" << std::endl;
 
     std::cout << "cuda memcpy device to host" << std::endl;

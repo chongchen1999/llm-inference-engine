@@ -3,7 +3,7 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <fstream>
-#include "src/kernels/cublas_utils.h"
+#include "src/kernels/includes/cublas_utils.h"
 #include "src/utils/tensor.h"
 #include "src/weights/base_weights.h"
 #include "src/utils/macro.h"
@@ -11,7 +11,7 @@
 //TODO: when enable int8/int4 weight only, we can add a new type param T2 to represent weight type
 template<typename T>
 void launchLinearGemm(TensorWrapper<T> *input, 
-                      BaseWeight<T> &weight, 
+                      BaseWeight<T> *weight, 
                       TensorWrapper<T> *output,
                       cublasWrapper *cublas_wrapper,
                       bool trans_a = false, bool trans_b = false);
