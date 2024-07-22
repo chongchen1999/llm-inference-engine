@@ -6,7 +6,7 @@
 #include <vector>    // std::vector
 #include <cuda_runtime.h> // cudaMalloc, cudaMemcpy, cudaFree
 
-#include "src/kernels/includes/attn_softmax.h"
+#include "src/kernels/includes/fused_scale_mask_and_softmax.h"
 
 // `./test_mask_softmax 1` to test half GPU kernel
 // `./test_mask_softmax` to test fp32 GPU kernel
@@ -44,7 +44,7 @@ void test_masked_softmax(int batch_size, int head_num, int q_length, int k_lengt
     TensorWrapper<T> *score = new TensorWrapper<T>(Device::GPU, type, {batch_size, head_num, q_length, k_length}, d_score);
 
     std::cout << "before launch softmax kernel" << std::endl;
-    launchScaleMaskAndSoftmax(qk, mask, score, scale);
+    launchFusedScaleMaskAndSoftmax(qk, mask, score, scale);
     std::cout << "after launch softmax kernel" << std::endl;
     std::cout << "cuda memcpy device to host" << std::endl;
 
