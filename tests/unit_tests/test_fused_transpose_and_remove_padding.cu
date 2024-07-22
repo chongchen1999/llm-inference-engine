@@ -1,4 +1,4 @@
-#include "src/kernels/includes/fused_trans_and_rmv_pad.h"
+#include "src/kernels/includes/fused_transpose_and_remove_padding.h"
 #include <iostream>
 
 // [b,h,s,d] => [b,s,h,d] => [num tokens,h,d]
@@ -54,7 +54,7 @@ int main() {
     TensorWrapper<float> *out = new TensorWrapper<float>(Device::GPU, type, {num_tokens, head_num, head_size}, d_out);
 
     std::cout << "before launch transpose and remove padding kernel" << std::endl;
-    launchTransposeAndRemovePadding(in, in_pad, out);
+    launchFusedTransposeAndRemovePadding(in, in_pad, out);
     std::cout << "after launch transpose and remove padding kernel" << std::endl;
 
     std::cout << "cuda memcpy device to host" << std::endl;
