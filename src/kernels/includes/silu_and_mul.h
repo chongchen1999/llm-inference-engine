@@ -6,5 +6,8 @@
 #include "src/utils/tensor.h"
 #include "src/utils/vectorize_utils.h"
 
-template<typename T>
-void launchSiluAndMul(TensorWrapper<T> *input, TensorWrapper<T> *output);
+template <typename T>
+void launchSiluAndMul(
+    TensorWrapper<T> *input,
+    TensorWrapper<T> *output
+);
