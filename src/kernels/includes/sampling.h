@@ -9,10 +9,11 @@
 #include "src/utils/params.h"
 
 template <typename T>
-void launchSampling(TensorWrapper<int> *topk_id,
-                    TensorWrapper<T> *topk_val,
-                    TensorWrapper<int> *seqlen,
-                    TensorWrapper<bool> *is_finished,
-                    TensorWrapper<int> *output_id,
-                    IntDict &params);
-                    
+void launchSampling(
+    TensorWrapper<int> *topk_id,
+    TensorWrapper<T> *topk_val,
+    TensorWrapper<int> *seqlen,
+    TensorWrapper<bool> *is_finished,
+    TensorWrapper<int> *output_id,
+    MapStringToInt *params
+);
