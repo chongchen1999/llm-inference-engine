@@ -18,5 +18,5 @@ void launchDecoderMaskedMultiHeadAttention(
     TensorWrapper<bool> *finished,
     TensorWrapper<int> *step,
     TensorWrapper<T> *mha_output,
-    const LlamaAttentionStaticParams *static_params
+    LlamaAttentionStaticParams *static_params
 );

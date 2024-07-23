@@ -15,14 +15,14 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/silu_and_mul.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/fused_decoder_self_attention.cu
     # ${CMAKE_SOURCE_DIR}/src/kernels/cublas_utils.cc
     # Add other source files here, e.g., cublasWrapper.cpp
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_silu_and_mul.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_fused_decoder_self_attention.cu
 )
 
 # Add the executable for the tests

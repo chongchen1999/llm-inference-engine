@@ -140,9 +140,9 @@ __global__ void fusedScaleMaskAndSoftmax_half(
     Vec_t *attn_score_vec = reinterpret_cast<Vec_t *>(attn_score);
     Vec_t *qk_buf_vec = reinterpret_cast<Vec_t *>(qk);
     Vec_t *attn_mask_vec = reinterpret_cast<Vec_t *>(mask);
-    Vec_t ONE = scalar_cast_vec<Vec_t>(__float2half(1.0f));
-    Vec_t NEG_INF = scalar_cast_vec<Vec_t>(__float2half(-10000.0f));
-    Vec_t scale_vec = scalar_cast_vec<Vec_t>(__float2half(scale));
+    Vec_t ONE = scalar_cast2_vector<Vec_t>(__float2half(1.0f));
+    Vec_t NEG_INF = scalar_cast2_vector<Vec_t>(__float2half(-10000.0f));
+    Vec_t scale_vec = scalar_cast2_vector<Vec_t>(__float2half(scale));
 
     __shared__ float inv_sum, s_max;
     if (threadIdx.x * vec_size >= k_len) {
@@ -182,7 +182,7 @@ __global__ void fusedScaleMaskAndSoftmax_half(
 
         float thread_sum = 0.0f;
         for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
-            data[col_start] = h2exp(__hsub2(data[col_start], scalar_cast_vec<Vec_t>(s_max)));
+            data[col_start] = h2exp(__hsub2(data[col_start], scalar_cast2_vector<Vec_t>(s_max)));
             thread_sum += (float)(__hadd(data[col_start].x, data[col_start].y));
         }
 
@@ -197,7 +197,7 @@ __global__ void fusedScaleMaskAndSoftmax_half(
                         head_id * q_len * k_len / 2 +
                         row_start * k_len / 2 +
                         col_start * blockDim.x + threadIdx.x;
-            attn_score_vec[qk_offset] = __hmul2(data[col_start], scalar_cast_vec<Vec_t>(inv_sum));
+            attn_score_vec[qk_offset] = __hmul2(data[col_start], scalar_cast2_vector<Vec_t>(inv_sum));
         }
     }
 }

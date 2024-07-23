@@ -36,8 +36,8 @@ void CPUMaskedAttention(
     const T *v_mem = v;
 
     // Temp buffer
-    float *sqk = static_cast<float *>(malloc(sizeof(float) * (block_nums * (3 * head_size + step))));
-    float *sq = sqk;
+    float *shared_qk = static_cast<float *>(malloc(sizeof(float) * (block_nums * (3 * head_size + step))));
+    float *sq = shared_qk;
     float *sk = sq + block_nums * head_size;
     float *logits = sk + block_nums * head_size;
     float *sv = logits + block_nums * step;
@@ -103,7 +103,7 @@ void CPUMaskedAttention(
         }
     }
 
-    free(sqk);
+    free(shared_qk);
 }
 
 template <typename T>

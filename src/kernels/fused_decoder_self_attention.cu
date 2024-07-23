@@ -11,72 +11,58 @@
 // bug4: GQA, kv_head_num brd to head_num, we can automatically do this by head id index like lmdeploy
 // half or float version: the logits and mha output both are fp32 type, q k v are all accessed vectorizedly
 
-template<typename T>
-__device__ __forceinline__ T warpReduceSum(T val) {
+template <typename T>
+struct SumOp {
+    __device__ __forceinline__ T operator()(const T &a, const T &b) const {
+        return a + b;
+    }
+};
+
+template <typename T>
+struct MaxOp {
+    __device__ __forceinline__ T operator()(const T &a, const T &b) const {
+        return a > b ? a : b;
+    }
+};
+
+template <template <typename> class ReductionOp, typename T>
+__device__ __forceinline__ T warpReduce(T val) {
     #pragma unroll
     for (int mask = 16; mask > 0; mask >>= 1) {
-        val += __shfl_xor_sync(0xffffffff, val, mask);
+        val = ReductionOp<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
     }
     return val;
 }
 
-template<typename T>
-__device__ T blockReduceSum(T val) {
+template <template <typename> class ReductionOp, typename T>
+__device__ T blockReduce(T val) {
     const int tid = threadIdx.x;
     const int warp_id = tid >> 5;
     const int lane_id = tid & 31;
     const int warp_nums = (blockDim.x + 31) >> 5;
-    static __shared__ T warpsum[32]; // why add static? or will report incomplete type
-
-    val = warpReduceSum<T>(val);
+    static __shared__ T warp[32]; // threads in a block must be less than 1024
+    val = warpReduce<ReductionOp, T>(val);
     if (lane_id == 0) {
-        warpsum[warp_id] = val;
+        warp[warp_id] = val;
     }
     __syncthreads();
-
-    T warp_val = tid < warp_nums ? warpsum[tid] : static_cast<T>(0.0f);
-    return warpReduceSum<T>(warp_val);
-}
-
-template<typename T>
-__device__ T warpReduceMax(T val) {
-    for (int mask = 16; mask > 0; mask >>= 1) {
-        val = max(val, __shfl_xor_sync(0xffffffff, val, mask));
-    }
-    return val;
-}
-
-template<typename T>
-__device__ T blockReduceMax(T val) {
-    const int tid = threadIdx.x;
-    const int warp_id = tid >> 5;
-    const int lane_id = tid & 31;
-    const int warp_nums = (blockDim.x + 31) >> 5;
-    static __shared__ T warpmax[32];
-
-    val = warpReduceMax(val);
-    if (lane_id == 0) {
-        warpmax[warp_id] = val;
-    }
-    __syncthreads();
-
-    T warp_val = tid < warp_nums ? warpmax[tid] : static_cast<T>(0);
-    return warpReduceMax(warp_val);
+    const T warp_val = tid < warp_nums ? warp[tid] : 0;
+    return warpReduce<ReductionOp, T>(warp_val);
 }
 
 /*
     dim3 grid(head_num * batch_size);
     dim3 block(head_size);
 */
-template<typename T>
+template <typename T>
 __global__ void maskedMultiHeadAttention(
-    T *q, // [bs, head_num, 1, head_size]
-    T *k, 
-    T *v, 
-    T *qkv_bias, // bias, [qkv_head_num * head_size]
-    T *k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
-    T *v_cache, 
-    T *mha_output, // [batch_size, num_heads, head_size]
+    T *const q, // [bs, head_num, 1, head_size]
+    T *const k, // [bs, kv_head_num, 1, head_size]
+    T *const v, // [bs, kv_head_num, 1, head_size]
+    const T *const qkv_bias, // bias, [qkv_head_num * head_size]
+    T *const k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
+    T *const v_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
+    T *const mha_output, // [batch_size, num_heads, head_size]
     const int batch_size, 
     const int head_num, 
     const int kv_head_num,
@@ -86,9 +72,9 @@ __global__ void maskedMultiHeadAttention(
     const int rotary_embedding_dim, 
     const float rotary_embedding_base
 ) {
-    const int tid = threadIdx.x;
     const int q_batch_id = blockIdx.x / head_num;
     const int q_head_id = blockIdx.x % head_num;
+    const int tid = threadIdx.x;
 
     const int kv_batch_id = q_batch_id;
     const int repeated_kv_heads = head_num / kv_head_num;
@@ -101,104 +87,120 @@ __global__ void maskedMultiHeadAttention(
     const int k_offset = kv_batch_id * kv_batch_stride + kv_head_id * head_stride + tid;
 
     const int vec_size = Vec<T>::size;
-    const int q_offset_vec = q_batch_id * batch_stride + q_head_id * head_stride + tid * vec_size;
-    const int k_offset_vec = kv_batch_id * kv_batch_stride + kv_head_id * head_stride + tid * vec_size;
+    const int vec_q_offset = q_batch_id * batch_stride + q_head_id * head_stride + tid * vec_size;
+    const int vec_kv_offset = kv_batch_id * kv_batch_stride + kv_head_id * head_stride + tid * vec_size;
     const int cache_offset = kv_batch_id * kv_head_num * max_seq_len * head_size +
                              kv_head_id * max_seq_len * head_size + tid * vec_size;
+
     const int step_stride = head_size;
     const float scale = rsqrt(static_cast<float>(head_size));
     using Vec_t = typename Vec<T>::Type;
-    Vec_t qvec, kvec, vvec;
-    const T *const q_mem = q;
-    const T *const k_mem = k;
-    const T *const v_mem = v;
+
+    extern __shared__ char shared_qk[];
+    T *const shared_q = reinterpret_cast<T *>(shared_qk);
+    float *const logits = reinterpret_cast<float *>(shared_q + head_size);
+    Vec_t *const vec_shared_q = reinterpret_cast<Vec_t *>(shared_q);
+
+    Vec_t &vec_q = *reinterpret_cast<Vec_t *>(q + vec_q_offset);
+    Vec_t &vec_k = *reinterpret_cast<Vec_t *>(k + vec_kv_offset);
+    Vec_t &vec_v = *reinterpret_cast<Vec_t *>(v + vec_kv_offset);
 
     if (tid * vec_size < head_size) {
-        qvec = *reinterpret_cast<const Vec_t *>(const_cast<T *>(q_mem + q_offset_vec));
-        kvec = *reinterpret_cast<const Vec_t *>(const_cast<T *>(k_mem + k_offset_vec));
-        vvec = *reinterpret_cast<const Vec_t *>(const_cast<T *>(v_mem + k_offset_vec));
-    }
-
-    extern __shared__ char sqk[];
-    T *const sq_scalar = reinterpret_cast<T *>(sqk);
-    float *const logits = reinterpret_cast<float *>(sq_scalar + head_size);
-    Vec_t *const sq = reinterpret_cast<Vec_t *>(sq_scalar);
-
-    if (tid * vec_size < head_size) {
-        sq[tid] = qvec;
+        if (qkv_bias != nullptr) {
+            const Vec_t q_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + q_head_id * head_size + tid * vec_size);
+            const Vec_t k_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + (head_num + kv_head_id) * head_size + tid * vec_size);
+            const Vec_t v_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + (head_num + kv_head_num + kv_head_id) * head_size + tid * vec_size);
+            VectorizedOperator<Vec_t>::add_assign(vec_q, q_bias);
+            VectorizedOperator<Vec_t>::add_assign(vec_k, k_bias);
+            VectorizedOperator<Vec_t>::add_assign(vec_v, v_bias);
+        }
+        vec_shared_q[tid] = vec_q;
     }
     __syncthreads();
 
-    const float zero = 0.0f;
-    const Vec_t zero_f4 = scalar_cast_vec<Vec_t, T>(zero);
-    const float4 scale_f4 = scalar_cast_vec<float4, float>(scale);
+    const Vec_t vec_zero = ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(0.0f);
+    const Vec_t vec_scale = ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(scale);
 
-    for (int iter = 0; iter < step; ++iter) {
-        Vec_t kvec_qk = tid * vec_size < head_size ? *reinterpret_cast<Vec_t *>(&k_cache[iter * step_stride + cache_offset]) : zero_f4;
-        if (iter == step - 1 && tid * vec_size < head_size) {
-            *reinterpret_cast<Vec_t *>(&k_cache[iter * step_stride + cache_offset]) = kvec;
-            kvec_qk = kvec;
+    *reinterpret_cast<Vec_t *>(k_cache + (step - 1) * step_stride + cache_offset) = vec_k;
+    #pragma unroll
+    for (int kv_id = 0; kv_id < step; ++kv_id) {
+        Vec_t vec_cached_k = vec_zero;
+        Vec_t vec_qkT = vec_zero; // q * K^T
+        if (tid * vec_size < head_size) {
+            vec_cached_k = *reinterpret_cast<Vec_t *>(k_cache + kv_id * step_stride + cache_offset);
+            vec_qkT = VectorizedOperator<Vec_t>::mul(vec_shared_q[tid], vec_cached_k);
+            VectorizedOperator<Vec_t>::mul_assign(vec_qkT, vec_scale);
         }
-        Vec_t qk = zero_f4;
-        qk.x = (tid * vec_size < head_size) ? sq[tid].x * kvec_qk.x * scale_f4.x : zero;
-        qk.y = (tid * vec_size < head_size) ? sq[tid].y * kvec_qk.y * scale_f4.y : zero;
-        qk.z = (tid * vec_size < head_size) ? sq[tid].z * kvec_qk.z * scale_f4.z : zero;
-        qk.w = (tid * vec_size < head_size) ? sq[tid].w * kvec_qk.w * scale_f4.w : zero;
-        T qk_acc = qk.x + qk.y + qk.z + qk.w;
-        T attn_score = blockReduceSum<T>(qk_acc);
+        
+        T qk_acc = vec_qkT.x + vec_qkT.y + vec_qkT.z + vec_qkT.w;
+        T attention_score = blockReduce<SumOp, T>(qk_acc);
         if (tid == 0) {
-            logits[iter] = attn_score;
+            logits[kv_id] = attention_score;
         }
         __syncthreads();
     }
 
-    const T local_logits = tid < step ? static_cast<T>(logits[tid]) : 0;
-    __shared__ float row_max, fenmu;
-    const T block_max = blockReduceMax<T>(local_logits);
+    const T local_logit = tid < step ? static_cast<T>(logits[tid]) : 0;
+    __shared__ float row_max, sum_exp;
+    const T block_max = blockReduce<MaxOp, T>(local_logit);
     if (tid == 0) {
         row_max = block_max;
     }
     __syncthreads();
 
-    const T fenzi = tid < step ? expf(logits[tid] - row_max) : 0;
-    const T block_fenmu = blockReduceSum<T>(fenzi);
+    const T cur_exp = tid < step ? expf(local_logit - row_max) : 0;
+    const T block_sum_exp = blockReduce<SumOp, T>(cur_exp);
     if (tid == 0) {
-        fenmu = block_fenmu + 1e-6f;
+        sum_exp = block_sum_exp + 1e-6f;
     }
     __syncthreads();
 
     if (tid < step) {
-        logits[tid] = static_cast<T>(fenzi / fenmu);
+        logits[tid] = static_cast<T>(cur_exp / sum_exp);
     }
     __syncthreads();
 
     if (tid * vec_size < head_size) {
-        Vec_t O = scalar_cast_vec<Vec_t, T>(0.0f);
-        for (int iter = 0; iter < step; ++iter) {
-            Vec_t vvec_qkv = *reinterpret_cast<Vec_t *>(&v_cache[iter * step_stride + cache_offset]);
-            if (iter == step - 1) {
-                *reinterpret_cast<Vec_t *>(&v_cache[iter * step_stride + cache_offset]) = vvec;
-                vvec_qkv = vvec;
-            }
-            O.x += vvec_qkv.x * logits[iter];
-            O.y += vvec_qkv.y * logits[iter];
-            O.z += vvec_qkv.z * logits[iter];
-            O.w += vvec_qkv.w * logits[iter];
+        Vec_t vec_attention_score = ScalarCast2Vector::scalar_cast2_vector<Vec_t, T>(0.0f);
+        *reinterpret_cast<Vec_t *>(v_cache + (step - 1) * step_stride + cache_offset) = vec_v;
+
+        #pragma unroll
+        for (int kv_id = 0; kv_id < step; ++kv_id) {
+            Vec_t vec_cached_v = *reinterpret_cast<Vec_t *>(v_cache + kv_id * step_stride + cache_offset);
+            VectorizedOperator<Vec_t>::add_assign(
+                vec_attention_score, 
+                VectorizedOperator<Vec_t>::mul(
+                    vec_cached_v, 
+                    ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(logits[kv_id])
+                )
+            );
         }
-        *reinterpret_cast<Vec_t *>(&mha_output[q_offset_vec]) = O;
+        *reinterpret_cast<Vec_t *>(mha_output + q_offset) = vec_attention_score;
     }
 }
 
-template<>
+template <>
 __global__ void maskedMultiHeadAttention(
-    half *q, half *k, half *v, half *qkv_bias, half *k_cache, half *v_cache, half *mha_output,
-    const int batch_size, const int head_num, const int kv_head_num,
-    const int max_seq_len, const int head_size, const int step,
-    const int rotary_embedding_dim, const float rotary_embedding_base) {
+    half *const q, 
+    half *const k, 
+    half *const v, 
+    const half *const qkv_bias, 
+    half *const k_cache, 
+    half *const v_cache, 
+    half *const mha_output,
+    const int batch_size, 
+    const int head_num, 
+    const int kv_head_num,
+    const int max_seq_len, 
+    const int head_size, 
+    const int step,
+    const int rotary_embedding_dim, 
+    const float rotary_embedding_base
+) {
     // Note: To sync with newest fp32 MHA
 }
 
-template<typename T>
+template <typename T>
 void launchDecoderMaskedMultiHeadAttention(
     TensorWrapper<T> *qkv_buf, // [bs, qkv_head_num, 1, head_size]
     BaseWeight<T> *qkv, // bias, [qkv_head_num * head_size]
@@ -217,16 +219,16 @@ void launchDecoderMaskedMultiHeadAttention(
     const int kv_head_num = k_cache->shape[2];
     const int max_seq_len = k_cache->shape[3];
     const int head_num = qkv_head_num - 2 * kv_head_num;
-    
+
     const int cur_step = step->getVal();
     const int layer = layer_id->getVal();
     const int layer_offset = layer * max_seq_len * batch_size * kv_head_num * head_size;
 
     const int smem_size_bytes = head_size * sizeof(T) + cur_step * sizeof(float);
-    const T *const qkv_data = qkv_buf->data;
-    const T *const q = qkv_data;
-    const T *const k = qkv_data + head_num * head_size;
-    const T *const v = qkv_data + (head_num + kv_head_num) * head_size;
+    T *const qkv_data = qkv_buf->data;
+    T *const q = qkv_data;
+    T *const k = qkv_data + head_num * head_size;
+    T *const v = qkv_data + (head_num + kv_head_num) * head_size;
 
     const int rotary_embedding_dim = static_params->rotary_embedding_dim;
     const float rotary_embedding_base = static_params->rotary_embedding_base;
