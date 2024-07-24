@@ -185,7 +185,7 @@ int main() {
         std::cout << "Wrong Answer!" << std::endl;
     }
 
-    // Free memory
+    // free memory
     std::free(q);
     std::free(k);
     std::free(v);

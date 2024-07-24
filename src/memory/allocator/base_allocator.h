@@ -5,18 +5,19 @@
 
 class BaseAllocator {
 public:
+    BaseAllocator() = default;
     virtual ~BaseAllocator() = default;
 
     // Unified interface for all derived allocators to allocate buffers
     template<typename T>
-    T *Malloc(T *ptr, size_t size, bool is_host) {
-        return static_cast<T *>(UnifyMalloc(static_cast<void *>(ptr), size, is_host));
+    T *malloc(T *ptr, size_t size, bool is_host) {
+        return static_cast<T *>(unifyMalloc(static_cast<void *>(ptr), size, is_host));
     }
 
-    virtual void *UnifyMalloc(void *ptr, size_t size, bool is_host = false) = 0;
+    virtual void *unifyMalloc(void *ptr, size_t size, bool is_host = false) = 0;
 
     template<typename T>
-    void Free(T *ptr, bool is_host = false) {
+    void free(T *ptr, bool is_host = false) {
         UnifyFree(static_cast<void *>(ptr), is_host);
     }
 

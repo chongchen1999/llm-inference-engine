@@ -1,0 +1,23 @@
+rewrite the above code:
+Change all pointer declarations from datatype* to datatype *.
+Update all i++ to ++i in the for loops.
+Improve code style and readability.
+
+
+source /home/tourist/myenv/bin/activate
+
+python "/home/tourist/AI-HPC Projects/llm_inference_engine/huggingface_llama/convert_llama_weights_to_hf.py" --input_dir "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b" --model_size 7B --output_dir "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf"
+
+python "/home/tourist/AI-HPC Projects/llm_inference_engine/huggingface_llama/convert_downloaded_llama_weights.py" --input_dir "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b" --model_size 7B --output_dir "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf-2"
+
+python "/home/tourist/AI-HPC Projects/llm_inference_engine/huggingface_llama/weights_convert.py" -i "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf" -o "/home/tourist/AI-HPC Projects/llm_inference_engine/model_zoo/llama-2-7b-hf-bin"
+
+python "/home/tourist/AI-HPC Projects/llm_inference_engine/huggingface_llama/run.py"
+
+free -h
+sudo swapoff -a
+sudo fallocate -l 24G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+free -h
