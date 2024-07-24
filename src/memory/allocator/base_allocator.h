@@ -18,8 +18,8 @@ public:
 
     template<typename T>
     void free(T *ptr, bool is_host = false) {
-        UnifyFree(static_cast<void *>(ptr), is_host);
+        unifyFree(static_cast<void *>(ptr), is_host);
     }
 
-    virtual void UnifyFree(void *ptr, bool is_host = false) = 0;
+    virtual void unifyFree(void *ptr, bool is_host = false) = 0;
 };

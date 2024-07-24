@@ -9,39 +9,24 @@
 
 // I use Bytes to printf buffer size msg, because sometimes I allocate <1KB buffer,
 // which causes the display to show 0KB
-struct CudaBigBlock {
+struct CudaBlock {
     void *start_pointer;
-    size_t size;
+    const size_t size;
     bool is_allocated;
 
-    CudaBigBlock() = default;
+    CudaBlock() = default;
 
-    CudaBigBlock(void *start_pointer, size_t size, bool is_allocated) :
-        start_pointer(start_pointer),
-        size(size),
-        is_allocated(is_allocated) {}
-};
-
-struct CudaSmallBlock {
-    void *start_pointer;
-    size_t size;
-    bool is_allocated;
-
-    CudaSmallBlock() = default;
-
-    CudaSmallBlock(void *start_pointer, size_t size, bool is_allocated) :
-        start_pointer(start_pointer),
-        size(size),
-        is_allocated(is_allocated) {}
+    CudaBlock(void *start_pointer, size_t size, bool is_allocated)
+        : start_pointer(start_pointer), size(size), is_allocated(is_allocated) {}
 };
 
 class CudaAllocator : public BaseAllocator {
 private:
-    // map (key, value) is (device_id, block)
-    std::map<int, std::vector<CudaSmallBlock>> cuda_small_blocks;
-    std::map<int, std::vector<CudaBigBlock>> cuda_big_blocks;
-    std::map<int, size_t> free_size;
-    size_t totalAllocatedSize = 0;
+    // map: (key, value) = (device_id, blocks)
+    std::map<int, std::vector<CudaBlock>> device_to_small_blocks;
+    std::map<int, std::vector<CudaBlock>> device_to_big_blocks;
+    std::map<int, size_t> device_to_total_free_small_block_size;
+
     int device_id;
 
 public:
@@ -50,128 +35,150 @@ public:
     }
 
     ~CudaAllocator() {
-        for (auto &it : cuda_small_blocks) {
-            auto &cudaBlocks = it.second; // vector
-            for (size_t i = 0; i < cudaBlocks.size(); ++i) {
-                cudaFree(cudaBlocks[i].start_pointer);
+        for (auto &[device_id, blocks] : device_to_small_blocks) {
+            // Set the device context
+            cudaSetDevice(device_id);
+
+            // Free each block in the device
+            for (auto &block : blocks) {
+                if (block.is_allocated && !block.start_pointer) {
+                    cudaFree(block.start_pointer);
+                }
             }
-            auto &big_blocks = cuda_big_blocks[it.first];
-            for (size_t i = 0; i < big_blocks.size(); ++i) {
-                cudaFree(big_blocks[i].start_pointer);
+        }
+
+        for (auto &[device_id, blocks] : device_to_big_blocks) {
+            // Set the device context
+            cudaSetDevice(device_id);
+
+            // Free each block in the device
+            for (auto &block : blocks) {
+                if (block.is_allocated && !block.start_pointer) {
+                    cudaFree(block.start_pointer);
+                }
             }
         }
     }
 
-    void *unifyMalloc(void *ptr, size_t size, bool is_host) {
-        // align to 4 bytes
-        size = ((size + 31) >> 5) << 5;
+    void setDevice(int device_id) {
+        this->device_id = device_id;
+        cudaSetDevice(device_id);
+    }
 
-        // 1. Host malloc
+    void updateDevice() {
+        cudaGetDevice(&device_id);
+    }
+
+    void allocateByCudaMalloc(
+        void **ptr, 
+        size_t size, 
+        std::vector<CudaBlock> *blocks
+    ) {
+        CHECK(cudaMalloc(ptr, size));
+        blocks->push_back(CudaBlock(*ptr, size, true));
+    }
+
+    void unifyMalloc(void **ptr, size_t size, bool is_host) {
+        // align to 16 bytes
+        size = ((size + 15) >> 4) << 4;
+
+        // Host malloc
         if (is_host) {
-            ptr = std::malloc(size);
-            memset(ptr, 0, size);
-            return ptr;
+            *ptr = std::malloc(size);
+            return;
         }
 
-        // 2. Big buffer: Check for free big blocks
-        const int threashold = 1 << 20;
-        if (size > threashold) {
-            auto &big_blocks = cuda_big_blocks[device_id];
-            int block_id = -1;
-            for (size_t i = 0; i < big_blocks.size(); ++i) {
-                auto &cur_block = big_blocks[i];
-                if (
-                    cur_block.size >= size && 
+        const size_t threshold = static_cast<size_t>(1 << 20); // 1MB
+
+        // Allocate a big block if size > 1MB, use best fit strategy
+        if (size > threshold) {
+            auto &big_blocks = device_to_big_blocks[device_id];
+            CudaBlock *best_block = nullptr;
+            for (auto &cur_block : big_blocks) {
+                if (cur_block.size >= size && 
                     !cur_block.is_allocated &&
-                    cur_block.size - size < threashold
-                ) {
-                    if (block_id == -1 || big_blocks[block_id].size > cur_block.size) {
-                        block_id = i;
-                    }
+                    cur_block.size - size < threshold &&
+                    (!best_block || best_block->size > cur_block.size)) {
+                    best_block = &cur_block;
                 }
             }
-
-            if (block_id != -1) {
-                big_blocks[block_id].is_allocated = true;
-                return big_blocks[block_id].start_pointer;
+            
+            // Found free big block
+            if (best_block) {
+                best_block->is_allocated = true;
+                *ptr = best_block->start_pointer;
+                return;
             }
 
             // Allocate new big block
-            void *newBuffer;
-            cudaMalloc(&newBuffer, size);
-            totalAllocatedSize += size;
-            big_blocks.push_back(CudaBigBlock(newBuffer, size, true));
-            return newBuffer;
+            allocateByCudaMalloc(ptr, size, &big_blocks);
+            return;
         }
 
-        // 3. Small buffer: Check for free small blocks
-        auto &smallBlocks = cuda_small_blocks[device_id];
-        for (size_t i = 0; i < smallBlocks.size(); ++i) {
-            if (smallBlocks[i].size >= size && !smallBlocks[i].is_allocated) {
-                smallBlocks[i].is_allocated = true;
-                free_size[device_id] += smallBlocks[i].size;
-                return smallBlocks[i].start_pointer;
+        // Allocate a small block if size <= 1MB, use first fit strategy
+        auto &small_blocks = device_to_small_blocks[device_id];
+        for (auto &cur_block : small_blocks) {
+            if (cur_block.size >= size && !cur_block.is_allocated) {
+                cur_block.is_allocated = true;
+                device_to_total_free_small_block_size[device_id] -= cur_block.size;
+                *ptr = cur_block.start_pointer;
+                return;
             }
         }
 
-        // 4. Allocate new small block
-        void *newBuffer = nullptr;
-        CHECK(cudaMalloc(&newBuffer, size));
-        CHECK(cudaMemset(newBuffer, 0, size));
-        smallBlocks.push_back(CudaSmallBlock(newBuffer, size, true));
-        return newBuffer;
+        // Allocate new small block
+        allocateByCudaMalloc(ptr, size, &small_blocks);
     }
 
-    void UnifyFree(void *ptr, bool is_host) {
-        if (ptr == nullptr) {
+    void unifyFree(void *ptr, bool is_host) {
+        if (!ptr) {
             return;
         }
 
-        // 1. Host free
+        // Host free
         if (is_host) {
-            free(ptr);
+            std::free(ptr);
             return;
         }
 
-        // 2. Clean up fragments: If total small buffer size > 1GB, free unallocated small blocks
-        for (auto &it : cuda_small_blocks) {
-            if (free_size[it.first] > 1024 * 1024 * 1024) {
-                auto &cudaBlocks = it.second;
-                std::vector<CudaSmallBlock> temp;
-                for (size_t i = 0; i < cudaBlocks.size(); ++i) {
-                    if (!cudaBlocks[i].is_allocated) {
-                        cudaSetDevice(it.first);
-                        cudaFree(cudaBlocks[i].start_pointer);
-                    } else {
-                        temp.push_back(cudaBlocks[i]);
-                    }
-                }
-                cudaBlocks.clear();
-                it.second = std::move(temp);
-                free_size[it.first] = 0;
+        cudaGetDevice(&device_id);
+
+        // Check big blocks
+        for (auto &cur_block : device_to_big_blocks[device_id]) {
+            if (cur_block.start_pointer == ptr) {
+                cur_block.is_allocated = false;
+                return;
             }
         }
 
-        // 3. free buffer and update state
-        for (auto &it : cuda_small_blocks) {
-            auto &cudaBlocks = it.second;
-            for (size_t i = 0; i < cudaBlocks.size(); ++i) {
-                if (cudaBlocks[i].start_pointer == ptr) {
-                    free_size[it.first] += cudaBlocks[i].size;
-                    cudaBlocks[i].is_allocated = false;
-                    return;
-                }
-            }
-
-            auto &big_blocks = cuda_big_blocks[it.first];
-            for (size_t i = 0; i < big_blocks.size(); ++i) {
-                if (big_blocks[i].start_pointer == ptr) {
-                    big_blocks[i].is_allocated = false;
-                    return;
-                }
+        // Check small blocks
+        for (auto &cur_block : device_to_small_blocks[device_id]) {
+            if (cur_block.start_pointer == ptr) {
+                device_to_total_free_small_block_size[device_id] += cur_block.size;
+                cur_block.is_allocated = false;
+                return;
             }
         }
 
+        // Clean up fragments: If total small buffer size > 1GB, free unallocated small blocks
+        const size_t threshold = static_cast<size_t>(1 << 30); // 1GB
+
+        if (device_to_total_free_small_block_size[device_id] > threshold) {
+            std::vector<CudaBlock> temp;
+            auto &small_blocks = device_to_small_blocks[device_id];
+            for (auto &cur_block : small_blocks) {
+                if (!cur_block.is_allocated) {
+                    cudaFree(cur_block.start_pointer);
+                } else {
+                    temp.push_back(cur_block);
+                }
+            }
+            small_blocks.clear();
+            small_blocks = std::move(temp);
+            device_to_total_free_small_block_size[device_id] = 0;
+        }
+
+        // If not in big blocks and small blocks, free by cudaFree
         cudaFree(ptr);
     }
 };
