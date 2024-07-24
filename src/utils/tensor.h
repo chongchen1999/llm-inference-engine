@@ -64,7 +64,7 @@ public:
     }
 
     template<typename T>
-    TensorWrapper<T> *as() {
+    TensorWrapper<T> *wrap() {
         return static_cast<TensorWrapper<T> *>(this);
     }
 

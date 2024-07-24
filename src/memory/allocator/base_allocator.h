@@ -10,8 +10,8 @@ public:
 
     // Unified interface for all derived allocators to allocate buffers
     template<typename T>
-    T *malloc(T *ptr, size_t size, bool is_host) {
-        return static_cast<T *>(unifyMalloc(static_cast<void *>(ptr), size, is_host));
+    void malloc(T **ptr, size_t size, bool is_host) {
+        *ptr = static_cast<T *>(unifyMalloc(static_cast<void *>(*ptr), size, is_host));
     }
 
     virtual void *unifyMalloc(void *ptr, size_t size, bool is_host = false) = 0;
