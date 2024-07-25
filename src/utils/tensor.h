@@ -15,12 +15,19 @@
 #include <cstdint>  // for int8_t
 
 enum class Device {
-    CPU_PINNED, CPU, GPU
+    CPU_PINNED,
+    CPU,
+    GPU
 };
 
 enum class DataType {
-    FP32, FP16, INT8, INT32,
-    BOOL, BYTES, UNSUPPORTED
+    FP32,
+    FP16,
+    INT8,
+    INT32,
+    BOOL,
+    BYTES,
+    UNSUPPORTED
 };
 
 template<typename T>
@@ -53,14 +60,22 @@ public:
 
     Tensor() = default;
 
-    Tensor(const Device &device, const DataType &dtype, const std::vector<int> &shape)
-        : device(device), dtype(dtype), shape(shape) {}
+    Tensor(
+        const Device &device,
+        const DataType &dtype,
+        const std::vector<int> &shape
+    ) : device(device), dtype(dtype), shape(shape) {}
 
     virtual int size() const {
         if (shape.empty()) {
             return 0;
         }
-        return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+        return std::accumulate(
+            shape.begin(),
+            shape.end(),
+            1,
+            std::multiplies<int>()
+        );
     }
 
     template<typename T>
@@ -70,8 +85,8 @@ public:
 
     std::string deviceString() const {
         static const std::unordered_map<Device, std::string> device_string {
-            {Device::CPU, "CPU"}, 
-            {Device::CPU_PINNED, "CPU_PINNED"}, 
+            {Device::CPU, "CPU"},
+            {Device::CPU_PINNED, "CPU_PINNED"},
             {Device::GPU, "GPU"}
         };
         return device_string.at(device);
@@ -79,39 +94,54 @@ public:
 
     virtual std::string toString() const {
         static const std::unordered_map<DataType, std::string> type_to_string {
-            {DataType::INT8, "INT8"}, 
-            {DataType::INT32, "INT32"}, 
-            {DataType::FP16, "FP16"}, 
+            {DataType::INT8, "INT8"},
+            {DataType::INT32, "INT32"},
+            {DataType::FP16, "FP16"},
             {DataType::FP32, "FP32"}
         };
-        return fmtstr("Tensor[device = %s, type = %s, shape = %s]", 
-                      deviceString().c_str(), 
-                      type_to_string.at(dtype).c_str(), 
-                      vec2str(shape).c_str());
+        return fmtstr(
+            "Tensor[device = %s, type = %s, shape = %s]",
+            deviceString().c_str(),
+            type_to_string.at(dtype).c_str(),
+            vec2str(shape).c_str()
+        );
     }
 };
 
 template<typename T>
 class TensorWrapper : public Tensor {
 public:
-    T* data;
+    T *data;
 
-    TensorWrapper(const Device &device, const DataType &dtype, const std::vector<int> &shape)
-        : Tensor(device, dtype, shape) {}
+    TensorWrapper(
+        const Device &device,
+        const DataType &dtype,
+        const std::vector<int> &shape
+    ) : Tensor(device, dtype, shape) {}
 
-    TensorWrapper(const Device &device, const DataType &dtype, 
-                  const std::vector<int> &shape, T * const &data)
-        : Tensor(device, dtype, shape), data(data) {
+    TensorWrapper(
+        const Device &device,
+        const DataType &dtype,
+        const std::vector<int> &shape,
+        T * const &data
+    ) : Tensor(device, dtype, shape), data(data) {
         DataType in_dtype = getTensorType<T>();
-        LLM_CHECK_WITH_INFO(getTensorType<T>() == dtype, 
-                            "Passed in data type should be same as dtype in params");
+        LLM_CHECK_WITH_INFO(
+            getTensorType<T>() == dtype,
+            "Passed in data type should be same as dtype in params"
+        );
     }
 
     virtual int size() const override {
         if (data == nullptr || shape.empty()) {
             return 0;
         }
-        return std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+        return std::accumulate(
+            shape.begin(),
+            shape.end(),
+            1,
+            std::multiplies<int>()
+        );
     }
 
     inline T getVal(const int &id) const {
@@ -124,24 +154,27 @@ public:
         return getVal(0);
     }
 
-    inline T* getPtr() const {
+    inline T *getPtr() const {
         return data;
     }
 
-    inline T* getPtrByOffset(const int &offset) const {
+    inline T *getPtrByOffset(const int &offset) const {
         return data + offset;
     }
 
     virtual std::string toString() const override {
         static const std::unordered_map<DataType, std::string> type_to_string {
-            {DataType::INT8, "INT8"}, 
-            {DataType::FP16, "FP16"}, 
+            {DataType::INT8, "INT8"},
+            {DataType::FP16, "FP16"},
             {DataType::FP32, "FP32"}
         };
-        return fmtstr("Tensor[device = %s, type = %s, shape = %s, data = %p]",
-                      deviceString().c_str(), 
-                      type_to_string.at(dtype).c_str(), 
-                      vec2str(shape).c_str(), data);
+        return fmtstr(
+            "Tensor[device = %s, type = %s, shape = %s, data = %p]",
+            deviceString().c_str(),
+            type_to_string.at(dtype).c_str(),
+            vec2str(shape).c_str(),
+            data
+        );
     }
 };
 
@@ -150,19 +183,27 @@ class TensorMap {
 
     TensorMap() = default;
 
-    TensorMap(std::initializer_list<std::pair<std::string, Tensor *>> tensor_map) {
+    TensorMap(
+        std::initializer_list<std::pair<std::string, Tensor *>> tensor_map
+    ) {
         for (const auto &kv : tensor_map) {
             if (isValid(kv.second)) {
                 insert(kv.first, kv.second);
             } else {
-                LLM_CHECK_WITH_INFO(isValid(kv.second), 
-                                    fmtstr("%s is not a valid tensor, skipping insert into TensorMap", 
-                                    kv.first.c_str()));
+                LLM_CHECK_WITH_INFO(
+                    isValid(kv.second),
+                    fmtstr(
+                        "%s is not a valid tensor, skipping insert into TensorMap",
+                        kv.first.c_str()
+                    )
+                );
             }
         }
     }
 
-    TensorMap(const std::unordered_map<std::string, Tensor*> &tensor_map) {
+    TensorMap(
+        const std::unordered_map<std::string, Tensor*> &tensor_map
+    ) {
         for (const auto &kv : tensor_map) {
             if (isValid(kv.second)) {
                 insert(kv.first, kv.second);
@@ -195,16 +236,26 @@ class TensorMap {
     }
 
     inline Tensor *at(const std::string &key) const {
-        LLM_CHECK_WITH_INFO(isExist(key), 
-                            fmtstr("Cannot find a tensor of name %s in the tensor map (keys: %s)",
-                            key.c_str(), vec2str(keys()).c_str()));
+        LLM_CHECK_WITH_INFO(
+            isExist(key),
+            fmtstr(
+                "Cannot find a tensor of name %s in the tensor map (keys: %s)",
+                key.c_str(),
+                vec2str(keys()).c_str()
+            )
+        );
         return tensor_map.at(key);
     }
 
-    inline Tensor *operator[] (const std::string &key) const {
-        LLM_CHECK_WITH_INFO(isExist(key), 
-                            fmtstr("Cannot find a tensor of name %s in the tensor map (keys: %s)",
-                            key.c_str(), vec2str(keys()).c_str()));
+    inline Tensor *operator[](const std::string &key) const {
+        LLM_CHECK_WITH_INFO(
+            isExist(key),
+            fmtstr(
+                "Cannot find a tensor of name %s in the tensor map (keys: %s)",
+                key.c_str(),
+                vec2str(keys()).c_str()
+            )
+        );
         return tensor_map.at(key);
     }
 
