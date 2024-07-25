@@ -1,7 +1,7 @@
 #include <math.h>
 #include "src/utils/macro.h"
 // #include "src/utils/debug_utils.h"
-#include "src/layers/context_attention.h"
+#include "src/layers/includes/context_attention.h"
 
 // Note: In the layers folder, many operations are followed by `DeviceSyncAndCheckCudaError();`. 
 // You can manually remove them or add conditional compilation as shown in lesson30.

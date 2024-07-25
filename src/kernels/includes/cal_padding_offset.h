@@ -13,6 +13,8 @@
                      1, 1, 1,
                      3, 3, 3, 3, 3]
 */
-void launchCalPaddingOffset(TensorWrapper<int> *padding_offset, 
-                            TensorWrapper<int> *cum_seqlens,
-                            TensorWrapper<int> *input_lengths);
+void launchCalPaddingOffset(
+    TensorWrapper<int> *padding_offset, 
+    TensorWrapper<int> *cum_seqlens,
+    TensorWrapper<int> *input_lengths
+);

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "src/layers/ffn.h"
+#include "src/layers/includes/ffn.h"
 // #include "src/utils/debug_utils.h"
 // (RussWong) note: layers文件夹下，很多操作后面我都加了 `DeviceSyncAndCheckCudaError();`，大家可手动删除或者按照 lesson30 所示添加条件编译代码
 
