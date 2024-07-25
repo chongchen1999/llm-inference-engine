@@ -110,7 +110,7 @@ void LlamaFFNLayer<T>::forward(
     bool is_ctx = params->is_ctx;
 
 #ifdef SAVE_DATA
-    save_tensor(ffn_input->as<T>(), "ffn_input.bin", count);
+    saveTensor(ffn_input->as<T>(), "ffn_input.bin", count);
 #else
 #endif
 
@@ -126,7 +126,7 @@ void LlamaFFNLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(swiglu_input, "swiglu_input.bin", count);
+    saveTensor(swiglu_input, "swiglu_input.bin", count);
 #else
 #endif
 
@@ -135,7 +135,7 @@ void LlamaFFNLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(down_proj_input, "down_proj_input.bin", count);
+    saveTensor(down_proj_input, "down_proj_input.bin", count);
 #else
 #endif
 

@@ -193,7 +193,7 @@ void LlamaContextAttentionLayer<T>::forward(
 #endif
 
 #ifdef SAVE_DATA
-    save_tensor(q_buf_with_padding, "q_buf_after_rope.bin", layer_id->as<int>());
+    saveTensor(q_buf_with_padding, "q_buf_after_rope.bin", layer_id->as<int>());
 #else
 #endif
 
@@ -228,7 +228,7 @@ void LlamaContextAttentionLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(k_cache_buf, "k_buf_after_repeat.bin", layer_id->as<int>());
+    saveTensor(k_cache_buf, "k_buf_after_repeat.bin", layer_id->as<int>());
 #else
 #endif
 
@@ -267,7 +267,7 @@ void LlamaContextAttentionLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(qkv_buf_with_padding, "qk_v_buf_after_bmm.bin", layer_id->as<int>());
+    saveTensor(qkv_buf_with_padding, "qk_v_buf_after_bmm.bin", layer_id->as<int>());
 #else
 #endif
 
@@ -293,7 +293,7 @@ void LlamaContextAttentionLayer<T>::forward(
     );
 
 #ifdef SAVE_DATA
-    save_tensor(attention_output->as<T>(), "out_linear_output.bin", layer_id->as<int>());
+    saveTensor(attention_output->as<T>(), "out_linear_output.bin", layer_id->as<int>());
 #else
 #endif
 

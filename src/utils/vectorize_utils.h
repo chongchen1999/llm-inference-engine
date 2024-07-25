@@ -5,8 +5,8 @@
 #include <cuda_fp16.h>
 
 namespace ScalarCast2Vector {
-    template<typename T_OUT, typename T_IN>
-    __device__ __forceinline__ T_OUT scalar_cast2_vector(const T_IN val) {
+    template<typename OutputType, typename InputType>
+    __device__ __forceinline__ OutputType scalar_cast2_vector(const InputType val) {
         return val;
     }
 

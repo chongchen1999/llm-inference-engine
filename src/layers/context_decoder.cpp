@@ -176,7 +176,7 @@ void LlamaContextDecoder<T>::forward(
         DeviceSyncAndCheckCudaError();
 
         #ifdef SAVE_DATA
-        save_tensor(decoder_output->as<T>(), "ffn_input.bin", layer_id);
+        saveTensor(decoder_output->as<T>(), "ffn_input.bin", layer_id);
         #endif
 
         TensorMap ffn_inputs{
@@ -197,7 +197,7 @@ void LlamaContextDecoder<T>::forward(
         );
 
         #ifdef SAVE_DATA
-        save_tensor(decoder_output->as<T>(), "ffn_output.bin", layer_id);
+        saveTensor(decoder_output->as<T>(), "ffn_output.bin", layer_id);
         #endif
 
         launchAddResidual(

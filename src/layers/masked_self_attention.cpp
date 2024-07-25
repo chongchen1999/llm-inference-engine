@@ -119,7 +119,7 @@ void LlamaSelfAttentionLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(
+    saveTensor(
         mha_output,
         "self_decoder_qk_v_after_bmm.bin",
         layer_id->as<int>()
@@ -138,7 +138,7 @@ void LlamaSelfAttentionLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
 
 #ifdef SAVE_DATA
-    save_tensor(
+    saveTensor(
         mha_output,
         "self_decoder_outlinear_out.bin",
         layer_id->as<int>()
