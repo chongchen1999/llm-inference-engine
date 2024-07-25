@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     attn_dyn_params.max_q_len = attn_dyn_params.num_tokens;
     attn_dyn_params.max_k_len = context_length;
 
-    std::string retString = ""; // Response tokens string
+    std::string retString = ""; // response tokens string
 
     auto input_ids = std::make_unique<TensorWrapper<int>>(
         GPU, getTensorType<int>(), {cur_input_length}
