@@ -15,14 +15,14 @@ include_directories(
 
 # Add source files
 set(SOURCES
-    ${CMAKE_SOURCE_DIR}/src/kernels/sampling.cu
+    ${CMAKE_SOURCE_DIR}/src/kernels/add_residual.cu
     # ${CMAKE_SOURCE_DIR}/src/kernels/cublas_utils.cc
     # Add other source files here, e.g., cublasWrapper.cpp
 )
 
 # Add test source files
 set(TEST_SOURCES
-    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_sampling.cu
+    ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_add_residual.cu
 )
 
 # Add the executable for the tests
