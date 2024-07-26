@@ -9,11 +9,11 @@
 #include "src/kernels/includes/cublas_utils.h"
 
 // Callback function for printing the generated content of each conversation round
-using CallBack = std::function<void(int index, const char *generateContent)>;
+using CallBack = std::function<void(int , const char *)>;
 
 class BaseModel {
 public:
-    std::string modelName;
+    std::string model_name;
     
     // Common data members required by all model subclasses
     cudaStream_t stream;

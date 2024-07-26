@@ -18,20 +18,20 @@ private:
     const int head_size;
     const int inter_size;
     const int num_layers;
-    int vocab_size;
+    const int vocab_size;
     int vocab_size_padded;
-    float rmsnorm_eps = 1e-5f;   
+    const float rmsnorm_eps = 1e-5f;
     const int hidden_units; 
     const int max_seq_len;  // self-defined
-    int output_token_limit = 256;  // self-defined
-    int pad_token_id = 0;  // from hf modeling_config 
-    int bos_token_id = 1;
-    int eos_token_id = 2;
-    int layer_id = 0;
-    int batch_size = 1;  // can be included in dynamic parameters or not
-    int beamwidth = 1;   // needed by beam search; set 1 by default when not using beam search
-    int BlockPerBeam = 8;  // needed by topK
-    int index = 0;
+    const int output_token_limit = 20;  // self-defined
+    const int pad_token_id = 0;  // from hf modeling_config 
+    const int bos_token_id = 1;
+    const int eos_token_id = 2;
+    const int layer_id = 0;
+    const int batch_size = 1;  // can be included in dynamic parameters or not
+    const int beamwidth = 1;   // needed by beam search; set 1 by default when not using beam search
+    const int blocks_per_beam = 8;  // needed by topK
+    const int index = 0;
     std::string prompt = "";  // self-defined or not
 
     Tokenizer tokenizer;
@@ -69,13 +69,13 @@ private:
     TensorWrapper<T> *final_topk_val;
 
     // Pinned or not pinned CPU buffers
-    int *h_input_ids_buf = nullptr;
-    int *h_input_length_buf = nullptr;
-    int *h_history_length_buf = nullptr;
-    int *h_context_length_buf = nullptr;
-    int *h_sequence_lengths = nullptr;
-    bool *h_finished_buf = nullptr;
-    int *h_output_ids = nullptr;
+    int *h_input_ids_buf_ = nullptr;
+    int *h_input_length_buf_ = nullptr;
+    int *h_history_length_buf_ = nullptr;
+    int *h_context_length_buf_ = nullptr;
+    int *h_sequence_lengths_ = nullptr;
+    bool *h_finished_buf_ = nullptr;
+    int *h_output_ids_ = nullptr;
 
 public:
     LlamaModel() = default;
@@ -87,7 +87,7 @@ public:
         int inter_size,
         int num_layers,
         int vocab_size,
-        const LLaMAAttentionStaticParams &attn_static_params,
+        const LlamaAttentionStaticParams &attn_static_params,
         int max_seq_len,
         cudaStream_t stream,
         cublasWrapper *cublas_wrapper,
@@ -166,7 +166,7 @@ public:
         llama_weights->loadWeightsFromDummy();
     }
 
-    void allocateCPUBuffer(int max_batch_size);
+    void allocateCPUBuffer(int batch_size);
     void allocateGPUBuffer(int batch_size);
     void free();
 
@@ -177,9 +177,12 @@ public:
     int makeOutput();
 
     void inputEmbedding(TensorWrapper<int> *input_ids, TensorWrapper<T> *decoder_input);
-    void initializeForContextDecoder(IntDict &int_params_first_token);
-    int firstTokenGen(LlamaAttentionDynamicParams &dparams, IntDict &int_params_first_token);
-    void initializeForSelfDecoder();
-    int continueTokenGen(LlamaAttentionDynamicParams &dparams);
+    void initializeForContextDecoder(MapStringToInt &int_params_first_token);
+    int generateFirstToken(
+        LlamaAttentionDynamicParams &dparams, 
+        MapStringToInt &int_params_first_token
+    );
+    void initializationForSelfDecoder();
+    int generateNextToken(LlamaAttentionDynamicParams &dparams);
     int LMHeadAndTopKSample(TensorMap &decoder_outputs);
 };
