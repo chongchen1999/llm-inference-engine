@@ -1,19 +1,117 @@
-MyProject
-    src
-        kernels
-            linear.h
-            linear.cu
-            cublas_utils.cc
-            cublas_utils.h
-    utils
-        macro.h
-        string_utils.h
-        tensor.h
-    weights
-        llama
-            embedding_weight.h
-        base_weights.h
+.
+├── CMakeLists.txt
+├── README.md
+├── examples
+│   ├── CMakeLists.txt
+│   └── cpp
+│       ├── context_attention_example.cpp
+│       ├── context_decoder_example.cpp
+│       ├── ffn_example.cpp
+│       ├── self_attention_example.cpp
+│       └── self_decoder_example.cpp
+├── project_structure.txt
+├── src
+│   ├── kernels
+│   │   ├── add_residual.cu
+│   │   ├── build_causal_mask.cu
+│   │   ├── cal_padding_offset.cu
+│   │   ├── concat_past_kv.cu
+│   │   ├── cublas_utils.cpp
+│   │   ├── fused_add_residual_and_rmsnorm.cu
+│   │   ├── fused_decoder_self_attention.cu
+│   │   ├── fused_scale_mask_and_softmax.cu
+│   │   ├── fused_transpose_and_remove_padding.cu
+│   │   ├── includes
+│   │   │   ├── add_residual.h
+│   │   │   ├── build_causal_mask.h
+│   │   │   ├── cal_padding_offset.h
+│   │   │   ├── concat_past_kv.h
+│   │   │   ├── cublas_utils.h
+│   │   │   ├── fused_add_residual_and_rmsnorm.h
+│   │   │   ├── fused_decoder_self_attention.h
+│   │   │   ├── fused_scale_mask_and_softmax.h
+│   │   │   ├── fused_transpose_and_remove_padding.h
+│   │   │   ├── input_embedding.h
+│   │   │   ├── linear.h
+│   │   │   ├── qkv_bias_and_rope.h
+│   │   │   ├── repeat_kv.h
+│   │   │   ├── rmsnorm.h
+│   │   │   ├── sampling.h
+│   │   │   ├── silu_and_mul.h
+│   │   │   └── topk.h
+│   │   ├── input_embedding.cu
+│   │   ├── linear.cu
+│   │   ├── qkv_bias_and_rope.cu
+│   │   ├── repeat_kv.cu
+│   │   ├── rmsnorm.cu
+│   │   ├── sampling.cu
+│   │   ├── silu_and_mul.cu
+│   │   └── topk.cu
+│   ├── layers
+│   │   ├── context_attention.cpp
+│   │   ├── context_decoder.cpp
+│   │   ├── ffn.cpp
+│   │   ├── includes
+│   │   │   ├── context_attention.h
+│   │   │   ├── context_decoder.h
+│   │   │   ├── ffn.h
+│   │   │   ├── masked_self_attention.h
+│   │   │   └── self_decoder.h
+│   │   ├── masked_self_attention.cpp
+│   │   └── self_decoder.cpp
+│   ├── memory
+│   │   ├── allocator
+│   │   │   ├── base_allocator.h
+│   │   │   └── cuda_allocator.h
+│   │   └── memory_allocator.md
+│   ├── models
+│   │   ├── basemodel.h
+│   │   ├── common_params.h
+│   │   ├── llama
+│   │   │   ├── llama.cpp
+│   │   │   ├── llama.h
+│   │   │   └── llama_params.h
+│   │   └── tokenizer.h
+│   ├── utils
+│   │   ├── cuda_debug_utils.cuh
+│   │   ├── debug_utils.h
+│   │   ├── macro.h
+│   │   ├── params.h
+│   │   ├── string_utils.h
+│   │   ├── tensor.h
+│   │   ├── vectorize_utils.h
+│   │   ├── weight_utils.cu
+│   │   └── weight_utils.h
+│   └── weights
+│       ├── base_weights.h
+│       ├── llama
+│       │   ├── attention_weights.h
+│       │   ├── embedding_weights.h
+│       │   ├── ffn_weights.h
+│       │   ├── layer_weights.cpp
+│       │   ├── layer_weights.h
+│       │   ├── llama_weights.cpp
+│       │   ├── llama_weights.h
+│       │   └── norm_weights.h
+│       └── weight.h
+└── tests
+    ├── CMakeLists.txt
+    └── unit_tests
+        ├── test_add_residual.cu
+        ├── test_build_causal_mask.cu
+        ├── test_cal_padding_offset.cu
+        ├── test_concat_past_kv.cu
+        ├── test_fused_add_residual_and_rmsnorm.cu
+        ├── test_fused_decoder_self_attention.cu
+        ├── test_fused_scale_mask_and_softmax.cu
+        ├── test_fused_transpose_and_remove_padding.cu
+        ├── test_input_embedding.cu
+        ├── test_linear.cu
+        ├── test_qkv_bias_and_rope.cu
+        ├── test_repeat_kv.cu
+        ├── test_rmsnorm.cu
+        ├── test_sampling.cu
+        ├── test_silu_and_mul.cu
+        └── test_topk.cu
 
-    tests
-        unit_tests
-            test_linear.cu
+16 directories, 98 files

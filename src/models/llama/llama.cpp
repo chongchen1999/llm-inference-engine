@@ -322,7 +322,7 @@ int LlamaModel<T>::LMHeadAndTopKSample(TensorMap &decoder_outputs) {
 template <typename T>
 std::string LlamaModel<T>::response(
     const std::vector<std::string> &input,
-    CallBack PrintRes
+    CallBack printRes
 ) {
     // Temporary hardcoded token IDs for testing
     std::vector<int> token_ids = {1, 18637, 29892, 526, 366, 19861, 29973, 1815, 366, 5193, 304, 592, 29973};
@@ -375,25 +375,25 @@ std::string LlamaModel<T>::response(
         ++(*step->data);
         std::string gen_string = tokenizer.Decode({ret});
         ret_string += gen_string;
-        PrintRes(index, gen_string.c_str());
+        printRes(index, gen_string.c_str());
 
         if (index == 0) {
-            TensorWrapper<int> tmp(CPU, getTensorType<int>(), {1}, &ret);
-            LLM_CHECK(tmp.shape != input_ids->shape);
-            LLM_CHECK(tmp.dtype == input_ids->dtype);
-            LLM_CHECK(tmp.location != input_ids->location);
+            TensorWrapper<int> temp(Device::CPU, getTensorType<int>(), {1}, &ret);
+            LLM_CHECK(temp.shape != input_ids->shape);
+            LLM_CHECK(temp.dtype == input_ids->dtype);
+            LLM_CHECK(temp.location != input_ids->location);
 
-            allocator->Free(input_ids->data);
-            input_ids->data = allocator->Malloc(input_ids->data, sizeof(int) * 1, false);
+            allocator->free(input_ids->data);
+            input_ids->data = allocator->malloc(input_ids->data, sizeof(int) * 1, false);
             input_ids->shape = {1};
 
-            CHECK(cudaMemcpy(input_ids->data, tmp.data, sizeof(int) * 1, cudaMemcpyHostToDevice));
+            CHECK(cudaMemcpy(input_ids->data, temp.data, sizeof(int) * 1, cudaMemcpyHostToDevice));
         } else {
             CHECK(cudaMemcpy(input_ids->data, &ret, sizeof(int) * 1, cudaMemcpyHostToDevice));
         }
     }
 
-    PrintRes(-1, ret_string.c_str());
+    printRes(-1, ret_string.c_str());
     return ret_string;
 }
 
