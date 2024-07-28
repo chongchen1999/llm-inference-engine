@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     auto llm_model = llm::createRealLLMModel<float>(model.model_path, model.tokenizer_path);//load real weight + load tokenizer
     std::string model_name = llm_model->model_name;
     // exist when generate end token or reach max seq
-    while (true) {
+    while (1) {
         printf("please input the question: ");
         std::string input;
         std::getline(std::cin, input);

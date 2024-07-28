@@ -16,6 +16,7 @@ include_directories(
 # Add source files
 set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/kernels/add_residual.cu
+
     # ${CMAKE_SOURCE_DIR}/src/kernels/cublas_utils.cc
     # Add other source files here, e.g., cublasWrapper.cpp
 )
@@ -27,6 +28,7 @@ set(TEST_SOURCES
 
 # Add the executable for the tests
 add_executable(test ${SOURCES} ${TEST_SOURCES})
+add_executable(test2 ${CMAKE_SOURCE_DIR}/src/kernels/build_causal_mask.cu  ${CMAKE_SOURCE_DIR}/tests/unit_tests/test_build_causal_mask.cu)
 
 # Find CUDA toolkit including cuBLAS
 find_package(CUDAToolkit REQUIRED)
