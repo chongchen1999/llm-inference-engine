@@ -1,5 +1,5 @@
 #include <iostream>
-#include "src/kernels/includes/sampling.h"
+#include "includes/sampling.h"
 
 // mini-softmax + curand_sample
 // Input: [bs, K] from topK output

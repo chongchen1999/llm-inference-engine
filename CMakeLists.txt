@@ -40,11 +40,3 @@ endif()
 
 # Link CUDA and cuBLAS libraries
 target_link_libraries(test CUDA::cublas CUDA::cuda_driver)
-
-# Optionally, you can also specify other libraries if needed
-# target_link_libraries(test other_libraries)
-
-# If your project uses additional CUDA libraries, you might need to link them as well
-# For example:
-# find_package(CUDA REQUIRED)
-# target_link_libraries(test ${CUDA_LIBRARIES})

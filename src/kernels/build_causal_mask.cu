@@ -1,4 +1,4 @@
-#include "src/kernels/includes/build_causal_mask.h"
+#include "includes/build_causal_mask.h"
 
 // mask shape = [bs, max_q_len, max_k_len]
 template <typename T>

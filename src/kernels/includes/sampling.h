@@ -5,8 +5,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#include "src/utils/tensor.h"
-#include "src/utils/params.h"
+#include "../../utils/tensor.h"
+#include "../../utils/params.h"
 
 template <typename T>
 void launchSampling(

@@ -1,7 +1,7 @@
 #include <iostream>
-#include "src/kernels/includes/silu_and_mul.h"
-// #include "src/utils/cuda_debug_utils.cuh"
-#include "src/utils/macro.h"
+#include "includes/silu_and_mul.h"
+#include "../utils/cuda_debug_utils.cuh"
+#include "../utils/macro.h"
 
 template <typename T>
 __device__ __forceinline__ T silu(const T &x) {

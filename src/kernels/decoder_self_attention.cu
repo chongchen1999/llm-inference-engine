@@ -1,8 +1,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
-// #include "src/utils/cuda_debug_utils.cuh"
-#include "src/kernels/includes/fused_decoder_self_attention.h"
+#include "../utils/cuda_debug_utils.cuh"
+#include "includes/decoder_self_attention.h"
 
 // kv cache shape = [numlayers, bs, kv head num, max_seq_len, head size]
 // bug1: scale's dtype must be float, not int

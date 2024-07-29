@@ -1,6 +1,6 @@
 #include <stdio.h>
 // #include "src/utils/cuda_debug_utils.cuh"
-#include "src/kernels/includes/fused_add_residual_and_rmsnorm.h"
+#include "includes/add_residual_and_rmsnorm.h"
 
 // Bugs:
 // 1. `warpReduceSum` returns 0 if `blockDim.x < 32`, because `blockDim.x / 32 = 0`

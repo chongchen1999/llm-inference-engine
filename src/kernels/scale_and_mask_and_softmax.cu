@@ -1,6 +1,6 @@
-#include "src/kernels/includes/fused_scale_mask_and_softmax.h"
-#include "src/utils/tensor.h"
-// #include "src/utils/cuda_debug_utils.cuh"
+#include "includes/scale_and_mask_and_softmax.h"
+#include "../utils/tensor.h"
+#include "../utils/cuda_debug_utils.cuh"
 #include <float.h>
 #include <math.h>
 #include <assert.h>

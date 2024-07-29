@@ -3,10 +3,10 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/weights/base_weights.h"
-#include "src/weights/llama/norm_weights.h"
-#include "src/utils/tensor.h"
-#include "src/utils/vectorize_utils.h"
+#include "../../weights/base_weights.h"
+#include "../../weights/llama/norm_weights.h"
+#include "../../utils/tensor.h"
+#include "../../utils/vectorize_utils.h"
 
 template <typename T>
 void launchFusedAddBiasResidualAndRMSNorm(

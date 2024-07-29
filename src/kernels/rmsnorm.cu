@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "src/kernels/includes/rmsnorm.h"
+#include "includes/rmsnorm.h"
 
 // Bugs:
 // 1. Second warpReduceSum returns 0 due to blockDim.x < 32; blockDim.x / 32 = 0

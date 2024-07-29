@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include "src/kernels/includes/linear.h"
+#include "includes/linear.h"
 
 /*
-All matmul cases:
+All matrix multiplication cases:
 ctx qkv linear: [num_tokens, qhiddenunits] * [qhiddenunits, hiddenunits] = {num_tokens, qkv_head_num, head_size}
 ctx attn output linear: {num_tokens, head_num, head_size} * {qhiddenunits, qhiddenunits} = {num_tokens, qhiddenunits}
 self qkv linear: [bs, qhiddenunits] * [qhiddenunits, hiddenunits] = {bs, qkv_head_num, head_size}
@@ -23,7 +23,7 @@ void launchLinearGemm(
     TensorWrapper<T> *input,
     BaseWeight<T> *weight,
     TensorWrapper<T> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 ) {
@@ -92,7 +92,7 @@ void launchLinearStridedBatchGemm(
     TensorWrapper<T> *input1,
     TensorWrapper<T> *input2,
     TensorWrapper<T> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 ) {
@@ -161,7 +161,7 @@ template void launchLinearGemm(
     TensorWrapper<float> *input,
     BaseWeight<float> *weight,
     TensorWrapper<float> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 );
@@ -170,7 +170,7 @@ template void launchLinearGemm(
     TensorWrapper<half> *input,
     BaseWeight<half> *weight,
     TensorWrapper<half> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 );
@@ -179,7 +179,7 @@ template void launchLinearStridedBatchGemm(
     TensorWrapper<float> *input1,
     TensorWrapper<float> *input2,
     TensorWrapper<float> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 );
@@ -188,7 +188,7 @@ template void launchLinearStridedBatchGemm(
     TensorWrapper<half> *input1,
     TensorWrapper<half> *input2,
     TensorWrapper<half> *output,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     bool trans_a,
     bool trans_b
 );

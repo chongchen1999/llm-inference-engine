@@ -2,9 +2,9 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/utils/tensor.h"
-#include "src/weights/llama/norm_weights.h"
-#include "src/utils/vectorize_utils.h"
+#include "../../utils/tensor.h"
+#include "../../weights/llama/norm_weights.h"
+#include "../../utils/vectorize_utils.h"
 
 template<typename T>
 void launchRMSNorm(

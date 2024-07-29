@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "src/kernels/includes/add_residual.h"
+#include "includes/add_residual.h"
 // #include "src/utils/cuda_debug_utils.cuh"
 
 // Note: This kernel is used at the end of FFN in every decoder layer

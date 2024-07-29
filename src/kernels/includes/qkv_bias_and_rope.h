@@ -3,10 +3,10 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/models/llama/llama_params.h"
-#include "src/utils/tensor.h"
-#include "src/weights/base_weights.h"
-#include "src/utils/vectorize_utils.h"
+#include "../../models/llama/llama_params.h"
+#include "../../utils/tensor.h"
+#include "../../weights/base_weights.h"
+#include "../../utils/vectorize_utils.h"
 
 // Applies bias to QKV tensors, performs transposition, and applies RoPE.
 template<typename T>
