@@ -6,7 +6,7 @@
 #include <vector>        // std::vector
 
 #include "../../src/kernels/includes/decoder_self_attention.h"
-#include "src/utils/macro.h"
+#include "../../src/utils/macro.h"
 
 // Bug1: MUST add CHECK to cudaMemcpy to see if it works well
 // Note: This CPU implementation still has bugs.

@@ -3,10 +3,10 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/utils/tensor.h"
-#include "src/models/llama/llama_params.h"
-#include "src/weights/base_weights.h"
-#include "src/utils/vectorize_utils.h"
+#include "../../utils/tensor.h"
+#include "../../models/llama/llama_params.h"
+#include "../../weights/base_weights.h"
+#include "../../utils/vectorize_utils.h"
 
 template <typename T>
 void launchDecoderMaskedMultiHeadAttention(

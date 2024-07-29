@@ -53,14 +53,18 @@ __global__ void RMSNorm(
     using Vec_t = typename Vec<T>::Type;
 
     float thread_sum = 0.0f;
-    auto vecDout = reinterpret_cast<Vec_t *>(decoderOut + blockIdx.x * hidden_units);
-    auto vecRsd = reinterpret_cast<Vec_t *>(decoderResidual + blockIdx.x * hidden_units);
+    auto vec_dout = reinterpret_cast<Vec_t *>(decoderOut + blockIdx.x * hidden_units);
+    auto vec_rsd = reinterpret_cast<Vec_t *>(decoderResidual + blockIdx.x * hidden_units);
 
     #pragma unroll
     for (int idx = threadIdx.x; idx < hidden_units / vec_size; idx += blockDim.x) {
-        Vec_t vecTemp = vecDout[idx];
-        vecRsd[idx] = vecTemp;
-        VectorizedOperator::add_assign(thread_sum, VectorizedOperator::mul(vecTemp, vecTemp));
+        Vec_t vec_temp = vec_dout[idx];
+        vec_rsd[idx] = vec_temp;
+        Vec_t vec_sqr = VectorizedOperator<Vec_t>::mul(vec_temp, vec_temp);
+        thread_sum += vec_sqr.x;
+        thread_sum += vec_sqr.y;
+        thread_sum += vec_sqr.z;
+        thread_sum += vec_sqr.w;
     }
 
     thread_sum = blockReduceSum<float>(thread_sum);
@@ -75,9 +79,9 @@ __global__ void RMSNorm(
 
     #pragma unroll
     for (int idx = threadIdx.x; idx < hidden_units / vec_size; idx += blockDim.x) {
-        vecDout[idx] = VectorizedOperator::mul(
-            VectorizedOperator::mul(vecDout[idx], vecWeights[idx]), 
-            ScalarCast2Vector::scalar_cast2_vector(invMean)
+        vec_dout[idx] = VectorizedOperator<Vec_t>::mul(
+            VectorizedOperator<Vec_t>::mul(vec_dout[idx], vecWeights[idx]), 
+            ScalarCast2Vector::scalarCastToVector<Vec_t, float>(invMean)
         );
     }
 }
@@ -94,14 +98,14 @@ __global__ void RMSNorm(
     const int vec_size = Vec<half>::size;
     using Vec_t = typename Vec<half>::Type;
 
-    auto vecDout = reinterpret_cast<Vec_t *>(decoderOut + blockDim.x * hidden_units);
+    auto vec_dout = reinterpret_cast<Vec_t *>(decoderOut + blockDim.x * hidden_units);
     Vec_t *rsd = (decoderResidual != nullptr) ? reinterpret_cast<Vec_t *>(decoderResidual + blockDim.x * hidden_units) : nullptr;
     
     float thread_sum = 0.0f;
 
     #pragma unroll
     for (int i = threadIdx.x; i < hidden_units / vec_size; i += blockDim.x) {
-        Vec_t out = vecDout[i]; // Note: offset should divide vec_size
+        Vec_t out = vec_dout[i]; // Note: offset should divide vec_size
         if (decoderResidual != nullptr) {
             rsd[i] = out;
         }
@@ -122,9 +126,9 @@ __global__ void RMSNorm(
     auto vecWeights = reinterpret_cast<Vec_t *>(const_cast<half *>(weights));
 
     for (int i = threadIdx.x; i < hidden_units / vec_size; i += blockDim.x) {
-        Vec_t doutHalf2 = vecDout[i];
-        vecDout[i].x = vecWeights[i].x * __float2half(__half2float(doutHalf2.x) * invFenmu);
-        vecDout[i].y = vecWeights[i].y * __float2half(__half2float(doutHalf2.y) * invFenmu);
+        Vec_t doutHalf2 = vec_dout[i];
+        vec_dout[i].x = vecWeights[i].x * __float2half(__half2float(doutHalf2.x) * invFenmu);
+        vec_dout[i].y = vecWeights[i].y * __float2half(__half2float(doutHalf2.y) * invFenmu);
     }
 }
 

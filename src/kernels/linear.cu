@@ -27,12 +27,12 @@ void launchLinearGemm(
     bool trans_a,
     bool trans_b
 ) {
-    const int Am = input->shape[0];
-    const int An = input->shape[1];
-    const int Bm = weight->shape[0];
-    const int Bn = weight->shape[1];
-    const int Cm = output->shape[0];
-    const int Cn = output->shape[1];
+    int Am = input->shape[0];
+    int An = input->shape[1];
+    int Bm = weight->shape[0];
+    int Bn = weight->shape[1];
+    int Cm = output->shape[0];
+    int Cn = output->shape[1];
 
     // For ctx attn and self attn qkv linear, assume [bs/token nums, qkv head num, head size]
     // For gate & up linear, assume weight.shape=[hidden, 2*intersize], output.shape=[bs, 2, intersize]

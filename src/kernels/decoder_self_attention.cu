@@ -118,8 +118,8 @@ __global__ void maskedMultiHeadAttention(
     }
     __syncthreads();
 
-    const Vec_t vec_zero = ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(0.0f);
-    const Vec_t vec_scale = ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(scale);
+    const Vec_t vec_zero = ScalarCast2Vector::scalarCastToVector<Vec_t, float>(0.0f);
+    const Vec_t vec_scale = ScalarCast2Vector::scalarCastToVector<Vec_t, float>(scale);
 
     *reinterpret_cast<Vec_t *>(k_cache + (step - 1) * step_stride + cache_offset) = vec_k;
     #pragma unroll
@@ -161,7 +161,7 @@ __global__ void maskedMultiHeadAttention(
     __syncthreads();
 
     if (tid * vec_size < head_size) {
-        Vec_t vec_attention_score = ScalarCast2Vector::scalar_cast2_vector<Vec_t, T>(0.0f);
+        Vec_t vec_attention_score = ScalarCast2Vector::scalarCastToVector<Vec_t, T>(0.0f);
         *reinterpret_cast<Vec_t *>(v_cache + (step - 1) * step_stride + cache_offset) = vec_v;
 
         #pragma unroll
@@ -171,7 +171,7 @@ __global__ void maskedMultiHeadAttention(
                 vec_attention_score, 
                 VectorizedOperator<Vec_t>::mul(
                     vec_cached_v, 
-                    ScalarCast2Vector::scalar_cast2_vector<Vec_t, float>(logits[kv_id])
+                    ScalarCast2Vector::scalarCastToVector<Vec_t, float>(logits[kv_id])
                 )
             );
         }

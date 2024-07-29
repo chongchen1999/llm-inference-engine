@@ -1,8 +1,8 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "../utils/tensor.h"
-#include "../weights/llama/embedding_weights.h"
+#include "../../utils/tensor.h"
+#include "../../weights/llama/embedding_weights.h"
 
 template<typename T>
 void launchInputEmbedding(

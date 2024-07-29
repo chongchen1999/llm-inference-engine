@@ -1,30 +1,30 @@
 #include "includes/cublas_utils.h"
 #include <iostream>
 
-cublasWrapper::cublasWrapper(
+CublasWrapper::CublasWrapper(
     cublasHandle_t cublas_handle,
     cublasLtHandle_t cublaslt_handle
 ) :
     cublas_handle_(cublas_handle),
     cublaslt_handle_(cublaslt_handle) {}
 
-cublasWrapper::~cublasWrapper() {}
+CublasWrapper::~CublasWrapper() {}
 
-void cublasWrapper::setFP32GemmConfig() {
+void CublasWrapper::setFP32GemmConfig() {
     Atype_ = CUDA_R_32F;
     Btype_ = CUDA_R_32F;
     Ctype_ = CUDA_R_32F;
     computeType_ = CUDA_R_32F;
 }
 
-void cublasWrapper::setFP16GemmConfig() {
+void CublasWrapper::setFP16GemmConfig() {
     Atype_ = CUDA_R_16F;
     Btype_ = CUDA_R_16F;
     Ctype_ = CUDA_R_16F;
     computeType_ = CUDA_R_32F;
 }
 
-void cublasWrapper::gemm(
+void CublasWrapper::gemm(
     cublasOperation_t transa,
     cublasOperation_t transb,
     int m,
@@ -77,7 +77,7 @@ void cublasWrapper::gemm(
     );
 }
 
-void cublasWrapper::stridedBatchedGemm(
+void CublasWrapper::stridedBatchedGemm(
     cublasOperation_t transa,
     cublasOperation_t transb,
     int m,

@@ -3,7 +3,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/utils/tensor.h"
+#include "../../utils/tensor.h"
 
 // Function to launch the concatenation of KV cache
 template <typename T>

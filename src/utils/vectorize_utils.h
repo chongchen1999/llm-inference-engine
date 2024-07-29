@@ -6,27 +6,27 @@
 
 namespace ScalarCast2Vector {
     template<typename OutputType, typename InputType>
-    __device__ __forceinline__ OutputType scalar_cast2_vector(const InputType val) {
+    __device__ __forceinline__ OutputType scalarCastToVector(const InputType val) {
         return val;
     }
 
     template<>
-    __device__ __forceinline__ half2 scalar_cast2_vector<half2, float>(const float val) {
+    __device__ __forceinline__ half2 scalarCastToVector<half2, float>(const float val) {
         return __float2half2_rn(val);
     }
 
     template<>
-    __device__ __forceinline__ float4 scalar_cast2_vector<float4, float>(const float val) {
+    __device__ __forceinline__ float4 scalarCastToVector<float4, float>(const float val) {
         return make_float4(val, val, val, val);
     }
 
     template<>
-    __device__ __forceinline__ float2 scalar_cast2_vector<float2, float>(const float val) {
+    __device__ __forceinline__ float2 scalarCastToVector<float2, float>(const float val) {
         return make_float2(val, val);
     }
 
     template<>
-    __device__ __forceinline__ half2 scalar_cast2_vector<half2, half>(const half val) {
+    __device__ __forceinline__ half2 scalarCastToVector<half2, half>(const half val) {
         half2 res;
         res.x = val;
         res.y = val;

@@ -14,7 +14,7 @@ __global__ void embeddingFunctor(
 
     #pragma unroll
     for (int i = gid; i < max_context_token_num * hidden_size; i += stride) {
-        const token_id = i / hidden_size;
+        const int token_id = i / hidden_size;
         const int token_val = input_ids[token_id];
         const int feature_vector_idx = i - token_id * hidden_size; // aka i % hidden_size
         output[i] = embed_table[token_val * hidden_size + feature_vector_idx];

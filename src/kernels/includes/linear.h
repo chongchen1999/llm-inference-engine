@@ -4,10 +4,10 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <fstream>
-#include "includes/cublas_utils.h"
-#include "../utils/tensor.h"
-#include "../weights/base_weights.h"
-#include "../utils/macro.h"
+#include "cublas_utils.h"
+#include "../../utils/tensor.h"
+#include "../../weights/base_weights.h"
+#include "../../utils/macro.h"
 
 // TODO: When enabling int8/int4 weight only, add a new type parameter T2 to represent the weight type.
 template <typename T>

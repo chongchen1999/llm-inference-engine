@@ -1,5 +1,5 @@
 #include <stdio.h>
-// #include "src/utils/cuda_debug_utils.cuh"
+#include "../utils/cuda_debug_utils.cuh"
 #include "includes/add_residual_and_rmsnorm.h"
 
 // Bugs:
@@ -156,7 +156,9 @@ __global__ void fusedAddBiasResidualAndRMSNorm(
     __shared__ Vec_t inv_rms;
 
     if (tid == 0) {
-        inv_rms = scalar_cast2_vector<Vec_t>(__float2half(rsqrt(block_sum / hidden_units + eps)));
+        inv_rms = ScalarCast2Vector::scalarCastToVector<Vec_t>(
+            __float2half(rsqrt(block_sum / hidden_units + eps))
+        );
     }
     __syncthreads();
 

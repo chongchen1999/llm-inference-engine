@@ -2,8 +2,8 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "src/utils/macro.h"
-#include "src/utils/tensor.h"
+#include "../../utils/macro.h"
+#include "../../utils/tensor.h"
 
 /*
     for example:

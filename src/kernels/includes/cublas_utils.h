@@ -5,7 +5,7 @@
 #include <cuda_runtime.h>
 #include <map>
 #include <string>
-#include "../utils/macro.h"
+#include "../../utils/macro.h"
 
 // 1. cuBLAS API: must allocate the required matrices in GPU memory space, 
 // fill them with data, call the sequence of desired cuBLAS functions, and then upload the results back to the host.
@@ -16,8 +16,8 @@
 
 class CublasWrapper {
 private:
-    cublasHandle_t cublasHandle_;
-    cublasLtHandle_t cublasLtHandle_;
+    cublasHandle_t cublas_handle_;
+    cublasLtHandle_t cublaslt_handle_;
 
     cudaDataType_t Atype_;
     cudaDataType_t Btype_;

@@ -34,7 +34,6 @@ __global__ void repeatKVCache(
     const int kv_head_id = gid % head_size;
     const int kv_seq_id = gid / head_size;
     const int kv_head_num = head_num / repeated_heads_per_kv;
-    const int kv_head_id = head_id / repeated_heads_per_kv;
 
     // Only fetch context_length (< max_seq_len) KV data from all KV cache of the current sequence
     if (kv_seq_id < seq_len) {

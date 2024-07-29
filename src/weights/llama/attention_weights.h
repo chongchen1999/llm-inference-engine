@@ -1,5 +1,6 @@
 #pragma once
-#include "src/weights/base_weights.h"
+
+#include "../base_weights.h"
 
 template<typename T>
 struct LlamaAttentionWeights {
