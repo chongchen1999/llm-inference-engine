@@ -1,4 +1,4 @@
-#include "src/utils/weight_utils.h"
+#include "weight_utils.h"
 
 template<typename OutputType, typename InputType>
 __device__ __forceinline__ OutputType typeCast(InputType val) {

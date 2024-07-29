@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include "src/utils/macro.h"
+#include "macro.h"
 
 template<typename T>
 void GPUMalloc(T **ptr, size_t size);

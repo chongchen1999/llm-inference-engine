@@ -6,7 +6,7 @@
 #include <vector>    // std::vector
 #include <cuda_runtime.h> // cudaMalloc, cudaMemcpy, cudaFree
 
-#include "src/kernels/includes/fused_scale_mask_and_softmax.h"
+#include "../../src/kernels/includes/scale_and_mask_and_softmax.h"
 
 // `./test_mask_softmax 1` to test half GPU kernel
 // `./test_mask_softmax` to test fp32 GPU kernel

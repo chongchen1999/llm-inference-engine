@@ -4,9 +4,9 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <fstream>
-#include "src/utils/tensor.h"
-#include "src/weights/base_weights.h"
-#include "src/utils/macro.h"
+#include "tensor.h"
+#include "../weights/base_weights.h"
+#include "macro.h"
 
 // Note: Overloaded functions for saving intermediate output tensor to debug
 // Because LLMs have many layers, overloaded functions are provided to specify layer ID 

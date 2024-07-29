@@ -6,8 +6,8 @@
 #include <vector>       // std::vector
 
 #include <cuda.h>
-#include "src/kernels/includes/topk.h"
-#include "src/utils/tensor.h"
+#include "../../src/kernels/includes/topk.h"
+#include "../../src/utils/tensor.h"
 
 // Note:
 // There is no top k CPU kernel implementation now.

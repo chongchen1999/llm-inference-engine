@@ -8,8 +8,8 @@
 #include <sstream>
 #include <iostream>
 #include <cuda_fp16.h>
-#include "src/utils/string_utils.h"
-#include "src/utils/macro.h"
+#include "string_utils.h"
+#include "macro.h"
 
 #include <type_traits>
 #include <cstdint>  // for int8_t

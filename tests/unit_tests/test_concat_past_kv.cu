@@ -6,7 +6,7 @@
 #include <vector>    // std::vector
 
 #include <cuda.h>
-#include "src/kernels/includes/concat_past_kv.h"
+#include "../../src/kernels/includes/concat_past_kv.h"
 
 // ()note:
 // there is no concat kv cpu kernel implementation now

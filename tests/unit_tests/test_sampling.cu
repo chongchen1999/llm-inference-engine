@@ -1,6 +1,6 @@
 #include <iostream>
-#include "src/kernels/includes/sampling.h"
-#include "src/utils/macro.h"
+#include "../../src/kernels/includes/sampling.h"
+#include "../../src/utils/macro.h"
 
 // Note: There is no CPU implementation of this kernel
 // We compare the kernel correctness by eye and result print info

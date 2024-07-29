@@ -6,9 +6,9 @@
 #include <vector>      // std::vector
 #include <ctime>       // std::time
 
-#include "src/kernels/includes/qkv_bias_and_rope.h"
-#include "src/weights/llama/attention_weights.h"
-#include "src/utils/macro.h"
+#include "../../src/kernels/includes/qkv_bias_and_rope.h"
+#include "../../src/weights/llama/attention_weights.h"
+#include "../../src/utils/macro.h"
 
 // CPU function for processing Q, K, V
 void CPUfunc(

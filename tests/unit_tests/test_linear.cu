@@ -7,9 +7,10 @@
 #include <cstdio>
 #include <fstream>
 #include <ctime>
-#include "src/utils/macro.h"
-#include "src/kernels/includes/linear.h"
-#include "src/weights/base_weights.h"
+
+#include "../../src/utils/macro.h"
+#include "../../src/kernels/includes/linear.h"
+#include "../../src/weights/base_weights.h"
 
 void CPUlinear(float *input, float *weight, float *output,
                int MM, int KK, int NN) {
@@ -85,7 +86,7 @@ int main(int argc, char *argv[]) {
     cublasLtHandle_t cublaslt_handle;
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
-    cublasWrapper *cublas_wrapper = new cublasWrapper(cublas_handle, cublaslt_handle);
+    CublasWrapper *cublas_wrapper = new CublasWrapper(cublas_handle, cublaslt_handle);
     cublas_wrapper->setFP32GemmConfig();
 
     std::cout << "before launch kernel" << std::endl;

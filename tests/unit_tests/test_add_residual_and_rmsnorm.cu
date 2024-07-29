@@ -5,7 +5,7 @@
 #include <string>      // std::string
 #include <vector>      // std::vector
 
-#include "src/kernels/includes/fused_add_residual_and_rmsnorm.h"
+#include "../../src/kernels/includes/add_residual_and_rmsnorm.h"
 #include <stdio.h>
 
 #define CHECK(call)                                   \

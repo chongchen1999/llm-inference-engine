@@ -1,4 +1,4 @@
-#include "src/kernels/includes/fused_transpose_and_remove_padding.h"
+#include "../../src/kernels/includes/transpose_and_remove_padding.h"
 #include <iostream>
 
 // [b,h,s,d] => [b,s,h,d] => [num tokens,h,d]

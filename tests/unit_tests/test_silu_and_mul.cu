@@ -4,7 +4,7 @@
 #include <cstdlib>     // rand
 #include <string>      // std::string
 #include <vector>      // std::vector
-#include "src/kernels/includes/silu_and_mul.h"
+#include "../../src/kernels/includes/silu_and_mul.h"
 
 // () Note: not sure CPU implementation is absolutely right and the GPU kernel is right compared with HF.
 // When you are implementing LLMs inference on CPU, you can reuse the CPU kernel and test its correctness.

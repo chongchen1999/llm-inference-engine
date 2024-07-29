@@ -1,14 +1,14 @@
-#include "src/models/basemodel.h"
-#include "src/models/llama/llama_params.h"
-#include "src/weights/llama/llama_weights.h"
-#include "src/layers/includes/context_attention.h"
-#include "src/layers/includes/self_decoder.h"
-#include "src/kernels/includes/input_embedding.h"  // embedding
-#include "src/kernels/includes/linear.h"           // LM Head
-#include "src/kernels/includes/topk.h"             // topK
-#include "src/kernels/includes/sampling.h"         // sampling
-#include "src/models/tokenizer.h"
-#include "src/utils/debug_utils.h"
+#include "../basemodel.h"
+#include "llama_params.h"
+#include "../../weights/llama/llama_weights.h"
+#include "../../layers/includes/context_attention.h"
+#include "../../layers/includes/self_decoder.h"
+#include "../../kernels/includes/input_embedding.h"  // embedding
+#include "../../kernels/includes/linear.h"           // LM Head
+#include "../../kernels/includes/topk.h"             // topK
+#include "../../kernels/includes/sampling.h"         // sampling
+#include "../../models/tokenizer.h"
+#include "../../utils/debug_utils.h"
 
 template<typename T>
 class LlamaModel : public BaseModel {

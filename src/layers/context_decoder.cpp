@@ -187,7 +187,7 @@ void LlamaContextDecoder<T>::forward(
         };
 
         // Used to distinguish FFN in context decoder or self decoder, to reduce print info
-        dyn_params->is_ctx = true;
+        dyn_params->is_context = true;
 
         ffn->forward(
             ffn_inputs, 

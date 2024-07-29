@@ -4,8 +4,8 @@
 #include <map>
 #include <vector>
 #include <iostream>
-#include "src/memory/allocator/base_allocator.h"
-#include "src/utils/macro.h"
+#include "base_allocator.h"
+#include "../../utils/macro.h"
 
 // I use Bytes to printf buffer size msg, because sometimes I allocate <1KB buffer,
 // which causes the display to show 0KB

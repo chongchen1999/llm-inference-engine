@@ -3,11 +3,11 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cublas_v2.h>
-#include "src/models/basemodel.h"
-#include "src/models/llama/llama.h"
-#include "src/utils/macro.h"
-#include "src/memory/allocator/cuda_allocator.h"
-#include "src/models/llama/llama_params.h"
+#include "../models/basemodel.h"
+#include "../models/llama/llama.h"
+#include "macro.h"
+#include "../memory/allocator/cuda_allocator.h"
+#include "../models/llama/llama_params.h"
 #include <nlohmann/json.hpp>
 
 // All LLM models are created in the header file.

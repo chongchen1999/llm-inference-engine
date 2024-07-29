@@ -6,7 +6,7 @@
 
 // This function allows us to define custom print strings
 template<typename... Args>
-inline std::string fmtstr(const std::string& format, Args... args) {
+inline std::string fmtstr(const std::string &format, Args... args) {
     // This function is adapted from a code snippet on StackOverflow under cc-by-1.0
     // https://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
 

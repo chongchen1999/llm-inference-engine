@@ -107,7 +107,7 @@ void LlamaFFNLayer<T>::forward(
     Tensor *ffn_output = outputs->at("ffn_output");
 
     ++count;
-    bool is_ctx = params->is_ctx;
+    bool is_context = params->is_context;
 
 #ifdef SAVE_DATA
     saveTensor(ffn_input->as<T>(), "ffn_input.bin", count);
