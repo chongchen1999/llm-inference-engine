@@ -16,11 +16,11 @@ template <typename T>
 class LlamaContextAttentionLayer {
 private:
     // Parameters shared across all LLMs
-    const int head_num;
-    const int head_size;
-    const int hidden_units;
-    const int repeats_per_kv; // For GQA and MQA
-    const int kv_head_num;
+    int head_num;
+    int head_size;
+    int hidden_units;
+    int repeats_per_kv; // For GQA and MQA
+    int kv_head_num;
     float scale;
 
     // Parameters specific to LLaMA that are unchanged
@@ -48,7 +48,7 @@ public:
         int head_size,
         LlamaAttentionStaticParams *attention_static_params,
         cudaStream_t stream,
-        cublasWrapper *cublas_wrapper,
+        CublasWrapper *cublas_wrapper,
         BaseAllocator *allocator
     );
 

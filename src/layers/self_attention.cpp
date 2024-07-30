@@ -1,6 +1,6 @@
 #include <math.h>
-// #include "src/utils/debug_utils.h"
-#include "src/layers/includes/masked_self_attention.h"
+#include "../../src/utils/debug_utils.h"
+#include "../../src/layers/includes/self_attention.h"
 
 // Note: In the layers folder, many operations have `DeviceSyncAndCheckCudaError();` added afterwards. 
 // You can manually remove these or add conditional compilation code as shown in lesson30.

@@ -179,13 +179,12 @@ public:
 };
 
 class TensorMap {
+public:
     std::unordered_map<std::string, Tensor *> tensor_map;
 
     TensorMap() = default;
 
-    TensorMap(
-        std::initializer_list<std::pair<std::string, Tensor *>> tensor_map
-    ) {
+    TensorMap(std::initializer_list<std::pair<std::string, Tensor *>> tensor_map) {
         for (const auto &kv : tensor_map) {
             if (isValid(kv.second)) {
                 insert(kv.first, kv.second);
@@ -201,9 +200,7 @@ class TensorMap {
         }
     }
 
-    TensorMap(
-        const std::unordered_map<std::string, Tensor*> &tensor_map
-    ) {
+    TensorMap(const std::unordered_map<std::string, Tensor*> &tensor_map) {
         for (const auto &kv : tensor_map) {
             if (isValid(kv.second)) {
                 insert(kv.first, kv.second);

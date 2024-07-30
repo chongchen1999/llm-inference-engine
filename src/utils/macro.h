@@ -85,6 +85,7 @@ inline void llmAssert(bool result, const char* const file, int const line, const
 }
 
 #define LLM_CHECK(val) llmAssert(val, __FILE__, __LINE__)
+
 #define LLM_CHECK_WITH_INFO(val, info)        \
 do {                                          \
     bool is_valid_val = (val);                \

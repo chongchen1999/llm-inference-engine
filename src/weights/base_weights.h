@@ -29,4 +29,5 @@ struct BaseWeight {
     WeightType type;
     std::vector<int> shape;
     T *data, *bias;
+    bool is_transposed = false;
 };

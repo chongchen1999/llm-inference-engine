@@ -35,30 +35,33 @@ public:
     }
 
     ~CudaAllocator() {
-        for (auto &[device_id, blocks] : device_to_small_blocks) {
-            // Set the device context
+        for (auto &device_blocks_pair : device_to_small_blocks) {
+            auto &device_id = device_blocks_pair.first;
+            auto &blocks = device_blocks_pair.second;
+
             cudaSetDevice(device_id);
 
-            // Free each block in the device
             for (auto &block : blocks) {
-                if (block.is_allocated && !block.start_pointer) {
+                if (block.is_allocated && block.start_pointer) {
                     cudaFree(block.start_pointer);
                 }
             }
         }
 
-        for (auto &[device_id, blocks] : device_to_big_blocks) {
-            // Set the device context
+        for (auto &device_blocks_pair : device_to_big_blocks) {
+            auto &device_id = device_blocks_pair.first;
+            auto &blocks = device_blocks_pair.second;
+
             cudaSetDevice(device_id);
 
-            // Free each block in the device
             for (auto &block : blocks) {
-                if (block.is_allocated && !block.start_pointer) {
+                if (block.is_allocated && block.start_pointer) {
                     cudaFree(block.start_pointer);
                 }
             }
         }
     }
+
 
     void setDevice(int device_id) {
         this->device_id = device_id;

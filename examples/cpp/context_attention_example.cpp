@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto *cublas_wrapper = &CublasWrapper(cublas_handle, cublaslt_handle);
-    auto *allocator = &CudaAllocator();
+    auto *cublas_wrapper = new CublasWrapper(cublas_handle, cublaslt_handle);
+    auto *allocator = new CudaAllocator();
 
     // Prepare input, weight, and output data
     float *h_attention_input = static_cast<float *>(malloc(sizeof(float) * q_hidden_units * attn_dyn_params.num_tokens));
@@ -129,6 +129,8 @@ int main(int argc, char **argv) {
     cudaMemcpy(d_input_len, h_input_len, sizeof(int) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_mask, h_mask, sizeof(float) * attn_dyn_params.batch_size * attn_dyn_params.max_q_len * attn_dyn_params.max_k_len, cudaMemcpyHostToDevice);
 
+    std::cout << "1st!" << std::endl;
+
     // Prepare input, weight, and output tensor
     const DataType type = getTensorType<float>(); // Note: the type should be a class data member!
     const DataType type_int = getTensorType<int>();
@@ -183,14 +185,14 @@ int main(int argc, char **argv) {
     );
 
     auto *attention_mask = new TensorWrapper<float>(
-        Device::GPU,,
+        Device::GPU,
         type,
         {attn_dyn_params.batch_size, attn_dyn_params.max_q_len, attn_dyn_params.max_k_len},
         d_mask
     );
 
     auto *attention_output = new TensorWrapper<float>(
-        Device::GPU,,
+        Device::GPU,
         type,
         {attn_dyn_params.num_tokens, q_hidden_units},
         d_attention_output
@@ -218,6 +220,8 @@ int main(int argc, char **argv) {
     LLM_CHECK_WITH_INFO(layer_id->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
     LLM_CHECK_WITH_INFO(context_length->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
     LLM_CHECK_WITH_INFO(attention_mask->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
+
+    std::cout<< "2nd!" << std::endl;
 
     TensorMap context_attention_inputs{
         {"attention_input", attention_input},
@@ -254,19 +258,21 @@ int main(int argc, char **argv) {
         head_num,
         kv_head_num,
         head_size,
-        attention_static_params,
+        &attention_static_params,
         stream,
         cublas_wrapper,
         allocator
     );
 
+    std::cout<< "3rd!" << std::endl;
+
     // Forward pass
     context_attention->forward(
-        context_attention_inputs, 
-        context_attention_outputs, 
-        context_attention_weights, 
-        attn_dyn_params, 
-        attention_static_params
+        &context_attention_inputs, 
+        &context_attention_outputs, 
+        &context_attention_weights, 
+        &attn_dyn_params, 
+        &attention_static_params
     );
 
     // Free buffer
@@ -288,5 +294,7 @@ int main(int argc, char **argv) {
     free(h_context_len);
     cudaFree(d_context_len);
     cudaFree(d_attention_output);
+    delete cublas_wrapper;
+    delete allocator;
     return 0;
 }

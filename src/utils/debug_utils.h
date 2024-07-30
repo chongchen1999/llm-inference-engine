@@ -116,5 +116,4 @@ void saveTensor(
     file.close();
 
     free(icpu);
-    return 0;
 }
