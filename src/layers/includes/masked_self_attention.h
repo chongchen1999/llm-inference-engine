@@ -20,12 +20,12 @@ private:
     const int head_num;
     const int head_size;
     const int hidden_units;
-    const int q_head_per_kv; // For GQA and MQA
+    const int repeats_per_kv; // For GQA and MQA
     const int kv_head_num;
     float scale;
 
     // Parameters specific to llama and unchanged
-    LlamaAttentionStaticParams attn_static_params;
+    LlamaAttentionStaticParams attention_static_params;
     
     cudaStream_t stream;
     BaseAllocator *allocator;
@@ -48,7 +48,7 @@ public:
 
     // (RussWong) Note: Private data members can only be accessed by member functions
     LlamaAttentionStaticParams *getAttnStaticParams() {
-        return &attn_static_params;
+        return &attention_static_params;
     }
 
     void AllocateMemoryForForward(LlamaAttentionDynamicParams *params);

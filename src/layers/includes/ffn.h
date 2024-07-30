@@ -42,9 +42,9 @@ public:
         BaseAllocator *allocator
     );
 
-    void allocateMemoryForForward(LlamaAttentionDynamicParams *params);
+    void allocateMemory(LlamaAttentionDynamicParams *params);
     
-    void allocateMemoryForForward(int batch_size);
+    void allocateMemory(int batch_size);
     
     void freeBuf();
 

@@ -1,14 +1,14 @@
 #include <iostream>
-#include "src/utils/macro.h"
-// #include "src/utils/debug_utils.h"
-#include "src/layers/includes/context_decoder.h"
+#include "../utils/macro.h"
+#include "../utils/debug_utils.h"
+#include "includes/context_decoder.h"
 
 // Note: In LLaMA, all linear layers do not have bias.
 // Note: I added `DeviceSyncAndCheckCudaError();` after many operations in the layers folder. 
 // You can manually remove it or add conditional compilation code as shown in lesson30.
 
 template <typename T>
-void LlamaContextDecoder<T>::allocateMemoryForForward(LlamaAttentionDynamicParams *params) {
+void LlamaContextDecoder<T>::allocateMemory(LlamaAttentionDynamicParams *params) {
     const int num_tokens = params->num_tokens;
     const int batch_size = params->batch_size;
     const int max_q_len = params->max_q_len;
@@ -77,7 +77,7 @@ void LlamaContextDecoder<T>::forward(
     TensorMap *output_tensors,
     LlamaAttentionDynamicParams *dyn_params
 ) {
-    allocateMemoryForForward(dyn_params);
+    allocateMemory(dyn_params);
 
     Tensor *seq_lens = input_tensors->at("input_length");
 
@@ -85,7 +85,7 @@ void LlamaContextDecoder<T>::forward(
     // Shape:
     // seq_lengths: [batch size]
     // output cum_seqlens: [batch size + 1], first element is 0
-    // output padding_offset: [batch size * max q len]
+    // output padding_offset: [batch size * max_q_len]
     launchCalPaddingOffset(
         padding_offset,    // out
         cum_seqlens,       // out
@@ -96,7 +96,7 @@ void LlamaContextDecoder<T>::forward(
     // 2. Build causal mask
     Tensor *context_length = input_tensors->at("context_length");
     launchBuildCausalMasks<T>(
-        attention_mask,            // out
+        attention_mask,            // out, [bs, max_q_len, max_k_len]
         seq_lens->wrap<int>(),     // q, input lengths, [bs]
         context_length->wrap<int>() // k, context lengths, [bs]
     );

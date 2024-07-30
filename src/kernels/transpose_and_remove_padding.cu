@@ -44,22 +44,22 @@ __global__ void fusedTransposeAndRemovePadding(
 
 template <typename T>
 void launchFusedTransposeAndRemovePadding(
-    TensorWrapper<T> *qkv_buf_with_padding,  // [bs, head nums, seqlen, head size]
+    TensorWrapper<T> *padded_qkv_buf,  // [bs, head nums, seqlen, head size]
     TensorWrapper<int> *padding_offset,      // [num_tokens]
-    TensorWrapper<T> *qkv_buf_without_padding // [num tokens, head nums, head size]
+    TensorWrapper<T> *lineared_qkv_buf // [num tokens, head nums, head size]
 ) {
-    const int batch_size = qkv_buf_with_padding->shape[0];
-    const int head_num = qkv_buf_with_padding->shape[1];
-    const int seq_len = qkv_buf_with_padding->shape[2];
-    const int head_size = qkv_buf_with_padding->shape[3];
-    const int num_tokens = qkv_buf_without_padding->shape[0];
+    const int batch_size = padded_qkv_buf->shape[0];
+    const int head_num = padded_qkv_buf->shape[1];
+    const int seq_len = padded_qkv_buf->shape[2];
+    const int head_size = padded_qkv_buf->shape[3];
+    const int num_tokens = lineared_qkv_buf->shape[0];
 
     dim3 grid(num_tokens);
     dim3 block(std::min(head_num * head_size, 1024));
 
     fusedTransposeAndRemovePadding<T><<<grid, block>>>(
-        qkv_buf_with_padding->data,
-        qkv_buf_without_padding->data,
+        padded_qkv_buf->data,
+        lineared_qkv_buf->data,
         num_tokens,
         batch_size,
         seq_len,
@@ -69,18 +69,18 @@ void launchFusedTransposeAndRemovePadding(
     );
 
 #ifdef PRINT_DATA
-    print_data<<<1, 1>>>(qkv_buf_without_padding->data);
+    print_data<<<1, 1>>>(lineared_qkv_buf->data);
 #endif
 }
 
 template void launchFusedTransposeAndRemovePadding(
-    TensorWrapper<float> *qkv_buf_with_padding,
+    TensorWrapper<float> *padded_qkv_buf,
     TensorWrapper<int> *padding_offset,
-    TensorWrapper<float> *qkv_buf_without_padding
+    TensorWrapper<float> *lineared_qkv_buf
 );
 
 template void launchFusedTransposeAndRemovePadding(
-    TensorWrapper<half> *qkv_buf_with_padding,
+    TensorWrapper<half> *padded_qkv_buf,
     TensorWrapper<int> *padding_offset,
-    TensorWrapper<half> *qkv_buf_without_padding
+    TensorWrapper<half> *lineared_qkv_buf
 );

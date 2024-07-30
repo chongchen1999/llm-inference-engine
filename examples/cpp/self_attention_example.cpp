@@ -2,7 +2,7 @@
 #include <vector>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "src/layers/attention/masked_self_attention.h"
+#include "../src/layers/attention/masked_self_attention.h"
 
 // current example doesn't consider layer_id in masked self-attention
 int main() {

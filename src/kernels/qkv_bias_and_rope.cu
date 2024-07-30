@@ -46,6 +46,8 @@ __global__ void fusedAddQKVBiasAndTransposeAndRope(
     int max_position_embeddings, // Default 2048 in LLaMA
     bool use_dynamic_ntk // Placeholder for ntk RoPE
 ) {
+    // grid_shape: [num_tokens, head_num + 2 * kv_head_num]
+    // block_shape: [head_size]
     const int token_id = blockIdx.x;
     const int head_id = blockIdx.y;
     const int tid = threadIdx.x;

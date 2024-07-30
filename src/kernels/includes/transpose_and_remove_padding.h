@@ -7,7 +7,7 @@
 
 template <typename T>
 void launchFusedTransposeAndRemovePadding(
-    TensorWrapper<T> *qkv_buf_with_padding, 
+    TensorWrapper<T> *padded_qkv_buf, 
     TensorWrapper<int> *padding_offset,
-    TensorWrapper<T> *qkv_buf_without_padding
+    TensorWrapper<T> *lineared_qkv_buf
 );

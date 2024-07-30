@@ -76,7 +76,7 @@ public:
             );
         }
 
-    void allocateMemoryForForward(
+    void allocateMemory(
         LlamaAttentionDynamicParams *dyn_params
     );
 

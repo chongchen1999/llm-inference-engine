@@ -2,7 +2,7 @@
 #include <vector>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "src/layers/attention/context_attention.h"
+#include "../../src/layers/includes/context_attention.h"
 
 int main(int argc, char **argv) {
     constexpr int head_num = 4;
@@ -13,11 +13,11 @@ int main(int argc, char **argv) {
     const int hidden_units = (head_num + 2 * kv_head_num) * head_size;
     const int q_hidden_units = head_num * head_size;
 
-    LlamaAttentionStaticParams attn_static_params;
-    attn_static_params.rotary_embedding_dim = 128;
-    attn_static_params.rotary_embedding_base = 10000;
-    attn_static_params.max_position_embeddings = 2048;
-    attn_static_params.use_dynamic_ntk = false; // For dynamic scaling ROPE
+    LlamaAttentionStaticParams attention_static_params;
+    attention_static_params.rotary_embedding_dim = 128;
+    attention_static_params.rotary_embedding_base = 10000;
+    attention_static_params.max_position_embeddings = 2048;
+    attention_static_params.use_dynamic_ntk = false; // For dynamic scaling ROPE
 
     LlamaAttentionDynamicParams attn_dyn_params;
     attn_dyn_params.batch_size = 2;
@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto *cublas_wrapper = new cublasWrapper(cublas_handle, cublaslt_handle);
-    auto *allocator = new CudaAllocator;
+    auto *cublas_wrapper = &CublasWrapper(cublas_handle, cublaslt_handle);
+    auto *allocator = &CudaAllocator();
 
     // Prepare input, weight, and output data
     float *h_attention_input = static_cast<float *>(malloc(sizeof(float) * q_hidden_units * attn_dyn_params.num_tokens));
@@ -101,14 +101,14 @@ int main(int argc, char **argv) {
     cudaMalloc(reinterpret_cast<void **>(&d_input_len), sizeof(int) * attn_dyn_params.batch_size);
 
     int h_layer_id = 0;
-    int *h_ctx_len = static_cast<int *>(malloc(sizeof(int) * attn_dyn_params.batch_size));
-    int *d_ctx_len;
-    cudaMalloc(reinterpret_cast<void **>(&d_ctx_len), sizeof(int) * attn_dyn_params.batch_size);
+    int *h_context_len = static_cast<int *>(malloc(sizeof(int) * attn_dyn_params.batch_size));
+    int *d_context_len;
+    cudaMalloc(reinterpret_cast<void **>(&d_context_len), sizeof(int) * attn_dyn_params.batch_size);
 
     for (int i = 0; i < attn_dyn_params.batch_size; ++i) {
         h_history_len[i] = 0; // For KV cache cumsum seqlen and ROPE's timestep compute
         h_input_len[i] = 7;   // Corresponding to padding offset
-        h_ctx_len[i] = h_history_len[i] + h_input_len[i];
+        h_context_len[i] = h_history_len[i] + h_input_len[i];
     }
 
     float *d_attention_output;
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     cudaMemcpy(d_all_v_cache, h_all_v_cache, sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_padding_offset, h_padding_offset, sizeof(int) * attn_dyn_params.num_tokens, cudaMemcpyHostToDevice);
     cudaMemcpy(d_history_len, h_history_len, sizeof(int) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_ctx_len, h_ctx_len, sizeof(int) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_context_len, h_context_len, sizeof(int) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_input_len, h_input_len, sizeof(int) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice);
     cudaMemcpy(d_mask, h_mask, sizeof(float) * attn_dyn_params.batch_size * attn_dyn_params.max_q_len * attn_dyn_params.max_k_len, cudaMemcpyHostToDevice);
 
@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
         Device::GPU,
         type_int,
         {attn_dyn_params.batch_size},
-        d_ctx_len
+        d_context_len
     );
 
     auto *attention_mask = new TensorWrapper<float>(
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
     LLM_CHECK_WITH_INFO(context_length->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
     LLM_CHECK_WITH_INFO(attention_mask->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
 
-    TensorMap ctx_attn_inputs{
+    TensorMap context_attention_inputs{
         {"attention_input", attention_input},
         {"qkv_bias", qkv_bias},
         {"padding_offset", padding_offset},
@@ -230,38 +230,44 @@ int main(int argc, char **argv) {
         {"attention_mask", attention_mask}
     };
 
-    TensorMap ctx_attn_outputs{
+    TensorMap context_attention_outputs{
         {"attention_output", attention_output},
         {"all_k_cache", all_k_cache},
         {"all_v_cache", all_v_cache}
     };
 
     // Weights are initialized in its constructor (see cpp/models/bert/bertlayerweight.cc)
-    LlamaAttentionWeights<float> ctx_attn_weights;
+    LlamaAttentionWeights<float> context_attention_weights;
     const WeightType wtype = getWeightType<float>();
 
-    ctx_attn_weights.qkv.data = d_qkv_weights;
-    ctx_attn_weights.qkv.shape = {q_hidden_units, hidden_units};
-    ctx_attn_weights.qkv.type = wtype;
-    ctx_attn_weights.qkv.bias = d_qkv_bias;
+    context_attention_weights.qkv.data = d_qkv_weights;
+    context_attention_weights.qkv.shape = {q_hidden_units, hidden_units};
+    context_attention_weights.qkv.type = wtype;
+    context_attention_weights.qkv.bias = d_qkv_bias;
 
-    ctx_attn_weights.output.data = d_output_weights;
-    ctx_attn_weights.output.shape = {q_hidden_units, q_hidden_units};
-    ctx_attn_weights.output.type = wtype;
+    context_attention_weights.output.data = d_output_weights;
+    context_attention_weights.output.shape = {q_hidden_units, q_hidden_units};
+    context_attention_weights.output.type = wtype;
 
     // Initialize context attention layer
     auto *context_attention = new LlamaContextAttentionLayer<float>(
         head_num,
         kv_head_num,
         head_size,
-        attn_static_params,
+        attention_static_params,
         stream,
         cublas_wrapper,
         allocator
     );
 
     // Forward pass
-    context_attention->forward(ctx_attn_inputs, ctx_attn_outputs, ctx_attn_weights, attn_dyn_params, attn_static_params);
+    context_attention->forward(
+        context_attention_inputs, 
+        context_attention_outputs, 
+        context_attention_weights, 
+        attn_dyn_params, 
+        attention_static_params
+    );
 
     // Free buffer
     cudaDeviceSynchronize();
@@ -279,9 +285,8 @@ int main(int argc, char **argv) {
     cudaFree(d_history_len);
     free(h_input_len);
     cudaFree(d_input_len);
-    free(h_ctx_len);
-    cudaFree(d_ctx_len);
+    free(h_context_len);
+    cudaFree(d_context_len);
     cudaFree(d_attention_output);
-
     return 0;
 }

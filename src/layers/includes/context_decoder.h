@@ -17,7 +17,7 @@ private:
     int head_num;
     int kv_head_num;
     int head_size;
-    int inter_size;
+    int intermediate_size;
     int num_layer;
     int hidden_units;
     float rmsnorm_eps;
@@ -40,9 +40,9 @@ public:
         int head_num,
         int kv_head_num,
         int head_size,
-        int inter_size,
+        int intermediate_size,
         int num_layer,
-        const LLaMAAttentionStaticParams &attn_params,
+        const LlamaAttentionStaticParams &attn_params,
         float rmsnorm_eps,
         cudaStream_t stream,
         cublasWrapper *cublas_wrapper,
@@ -51,7 +51,7 @@ public:
         head_num(head_num), 
         kv_head_num(kv_head_num), 
         head_size(head_size), 
-        inter_size(inter_size), 
+        intermediate_size(intermediate_size), 
         num_layer(num_layer), 
         hidden_units(head_num * head_size), 
         rmsnorm_eps(rmsnorm_eps), 
@@ -72,14 +72,14 @@ public:
             ffn = new LlamaFFNLayer<T>(
                 head_num,
                 head_size,
-                inter_size,
+                intermediate_size,
                 stream,
                 cublas_wrapper,
                 allocator
             );
         }
 
-    void allocateMemoryForForward(LlamaAttentionDynamicParams *dyn_params);
+    void allocateMemory(LlamaAttentionDynamicParams *dyn_params);
     void freeBuf();
     
     void forward(
