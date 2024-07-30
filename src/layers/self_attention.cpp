@@ -1,16 +1,13 @@
 #include <math.h>
-#include "../../src/utils/debug_utils.h"
-#include "../../src/layers/includes/self_attention.h"
-
-// Note: In the layers folder, many operations have `DeviceSyncAndCheckCudaError();` added afterwards. 
-// You can manually remove these or add conditional compilation code as shown in lesson30.
+#include "../utils/debug_utils.h"
+#include "../layers/includes/self_attention.h"
 
 template<typename T>
 LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
     int head_num,
     int kv_head_num,
     int head_size,
-    LlamaAttentionStaticParams attn_params,
+    LlamaAttentionStaticParams *attention_static_params,
     cudaStream_t stream,
     cublasWrapper *cublas_wrapper,
     BaseAllocator *allocator
@@ -22,7 +19,7 @@ LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
     cublas_wrapper(cublas_wrapper),
     allocator(allocator),
     hidden_units(head_num * head_size),
-    attn_static_params(attn_params),
+    attention_static_params(attention_static_params),
     // TODO: Check if kv_head_num is divisible by head_num
     q_head_per_kv(head_num / kv_head_num),
     scale(1.0f / sqrt(static_cast<float>(head_size))) {}
@@ -73,50 +70,55 @@ void LlamaSelfAttentionLayer<T>::forward(
     LlamaAttentionDynamicParams *params
 ) {   
     // () Note: Allocate intermediate buffer for layer forward
-    allocateMemoryForForward(&params);
+    allocateMemory(params);
+    printf("allocated!\n")
 
     // 1. qkv linear
-    // Shape: [bs, 1, q_hidden_units] * [q_hidden_units, hidden_units] = [bs, 1, hidden_units]
-    Tensor *attention_input = (*inputs)["attention_input"];
+    // Shape: [bs, 1, q_hidden_units] * [q_hidden_units, qkv_hidden_units] = [bs, 1, qkv_hidden_units]
+    Tensor *attention_input = inputs->at("attention_input");
     launchLinearGemm(
-        attention_input->warp<T>(),
-        weights->qkv,
+        attention_input->wrap<T>(),
+        &weights->qkv,
         qkv_buf,
         cublas_wrapper,
         false,
-        true
+        weights->qkv.is_transposed
     );
     DeviceSyncAndCheckCudaError();
+    printf("qkv linear!\n");
 
     // 2. biasRope
-    Tensor *attention_output = (*outputs)["attention_output"];
+    Tensor *attention_output = outputs->at("attention_output");
+
     // kv cache shape = [bs, kv_head_num, max_seq_len_head_size]
-    Tensor *key_cache = (*outputs)["all_k_cache"];
-    Tensor *value_cache = (*outputs)["all_v_cache"];
-    Tensor *finished = (*inputs)["finished"];
-    Tensor *step = (*inputs)["step"]; // [1] on CPU
-    Tensor *layer_id = (*inputs)["layer_id"]; // [1] on CPU
+    Tensor *key_cache = outputs->at("all_k_cache");
+    Tensor *value_cache = outputs->at("all_v_cache");
+    Tensor *finished = inputs->at("finished");
+    Tensor *step = inputs->at("step"); // [1] on CPU
+    Tensor *layer_id = inputs->at("layer_id"); // [1] on CPU
 
     launchRope(
         qkv_buf,
         step->wrap<int>(),
-        &attn_static_params
+        attention_static_params
     );
     DeviceSyncAndCheckCudaError();
+    printf("rope!\n");
 
     // 3. fused masked mha
     launchDecoderMaskedMultiHeadAttention<T>(
         qkv_buf,
-        weights->qkv,
+        &weights->qkv,
         layer_id->wrap<int>(),
         key_cache->wrap<T>(),
         value_cache->wrap<T>(),
         finished->wrap<bool>(),
         step->wrap<int>(),
         mha_output,
-        &attn_static_params
+        attention_static_params
     );
     DeviceSyncAndCheckCudaError();
+    printf("mha!\n");
 
 #ifdef SAVE_DATA
     saveTensor(
@@ -129,13 +131,14 @@ void LlamaSelfAttentionLayer<T>::forward(
     // 4. attention output linear
     launchLinearGemm(
         mha_output,
-        weights->output,
+        &weights->output,
         attention_output->wrap<T>(),
         cublas_wrapper,
         false,
-        true
+        weights->output.is_transposed
     );
     DeviceSyncAndCheckCudaError();
+    printf("output linear!\n");
 
 #ifdef SAVE_DATA
     saveTensor(

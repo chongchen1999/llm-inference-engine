@@ -2,9 +2,9 @@
 #include <vector>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include "../../src/layers/includes/masked_self_attention.h"
+#include "../../src/layers/includes/self_attention.h"
 
-// current example doesn't consider layer_id in masked self-attention
+// Current example doesn't consider layer_id in masked self-attention
 int main() {
     const int h_step = 3;
     const int head_num = 4;
@@ -15,90 +15,70 @@ int main() {
     const int hidden_units = (head_num + 2 * kv_head_num) * head_size;
     const int q_hidden_units = head_num * head_size;
 
-    LlamaAttentionStaticParams attn_static_params;
-    attn_static_params.rotary_embedding_dim = 128;
-    attn_static_params.rotary_embedding_base = 10000;
-    attn_static_params.max_position_embeddings = 2048;
-    attn_static_params.use_dynamic_ntk = false; // for dynamic scaling rope
+    LlamaAttentionStaticParams attention_static_params;
+    attention_static_params.rotary_embedding_dim = 128;
+    attention_static_params.rotary_embedding_base = 10000;
+    attention_static_params.max_position_embeddings = 2048;
+    attention_static_params.use_dynamic_ntk = false; // for dynamic scaling rope
 
-    LlamaAttentionDynamicParams attn_dyn_params;
-    attn_dyn_params.batch_size = 2;
-    // attn_dyn_params.num_tokens = 14;
+    LlamaAttentionDynamicParams attention_dynamic_params;
+    attention_dynamic_params.batch_size = 2;
 
     cublasHandle_t cublas_handle;
     cublasLtHandle_t cublaslt_handle;
     cudaStream_t stream;
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
-    cublasWrapper *cublas_wrapper = new cublasWrapper(cublas_handle, cublaslt_handle);
-    BaseAllocator *allocator = new CudaAllocator;
+    auto cublas_wrapper = std::make_unique<cublasWrapper>(cublas_handle, cublaslt_handle);
+    auto allocator = std::make_unique<CudaAllocator>();
 
-    // prepare input, weight, and output data
-    float *h_attention_input = (float *)malloc(sizeof(float) * q_hidden_units * attn_dyn_params.batch_size);
+    // Prepare input, weight, and output data
+    std::vector<float> h_attention_input(q_hidden_units * attention_dynamic_params.batch_size, 1.0f);
     float *d_attention_input;
-    cudaMalloc((void **)&d_attention_input, sizeof(float) * q_hidden_units * attn_dyn_params.batch_size);
-    for (int i = 0; i < q_hidden_units * attn_dyn_params.batch_size; ++i) { 
-       h_attention_input[i] = 1.0f;
-    }
+    cudaMalloc(reinterpret_cast<void **>(&d_attention_input), sizeof(float) * q_hidden_units * attention_dynamic_params.batch_size);
 
-    // max_seq_len is the max kv cache len
-    float *h_all_k_cache = (float *)malloc(sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size);
+    std::vector<float> h_all_k_cache(num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
     float *d_all_k_cache;
-    cudaMalloc((void **)&d_all_k_cache, sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size);
-    float *h_all_v_cache = (float *)malloc(sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size);
+    cudaMalloc(reinterpret_cast<void **>(&d_all_k_cache), sizeof(float) * num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size);
+
+    std::vector<float> h_all_v_cache(num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
     float *d_all_v_cache;
-    cudaMalloc((void **)&d_all_v_cache, sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size);
-    for (int i = 0; i < num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size; ++i) {
-       h_all_k_cache[i] = 1.0f;
-       h_all_v_cache[i] = 1.0f;
-    }
+    cudaMalloc(reinterpret_cast<void **>(&d_all_v_cache), sizeof(float) * num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size);
 
     const int h_layer_id = 0;
-    bool *h_finished = (bool *)malloc(sizeof(bool) * attn_dyn_params.batch_size);
+    std::vector<bool> h_finished(attention_dynamic_params.batch_size, false);
     bool *d_finished;
-    cudaMalloc((void **)&d_finished, sizeof(bool) * attn_dyn_params.batch_size);
-    for (int i = 0; i < attn_dyn_params.batch_size; ++i) {
-        h_finished[i] = false;
-    }
+    cudaMalloc(reinterpret_cast<void **>(&d_finished), sizeof(bool) * attention_dynamic_params.batch_size);
 
-    float *h_qkv_weights = (float *)malloc(sizeof(float) * q_hidden_units * hidden_units);
+    std::vector<float> h_qkv_weights(q_hidden_units * hidden_units, 1.0f);
     float *d_qkv_weights;
-    cudaMalloc((void **)&d_qkv_weights, sizeof(float) * q_hidden_units * hidden_units);
-    for (int i = 0; i < hidden_units * q_hidden_units; ++i) { 
-       h_qkv_weights[i] = 1.0f;
-    }    
+    cudaMalloc(reinterpret_cast<void **>(&d_qkv_weights), sizeof(float) * q_hidden_units * hidden_units);
 
-    float *h_output_weights = (float *)malloc(sizeof(float) * q_hidden_units * q_hidden_units);
+    std::vector<float> h_output_weights(q_hidden_units * q_hidden_units, 1.0f);
     float *d_output_weights;
-    cudaMalloc((void **)&d_output_weights, sizeof(float) * q_hidden_units * q_hidden_units);
-    for (int i = 0; i < q_hidden_units * q_hidden_units; ++i) { 
-       h_output_weights[i] = 1.0f;
-    }
+    cudaMalloc(reinterpret_cast<void **>(&d_output_weights), sizeof(float) * q_hidden_units * q_hidden_units);
 
-    float *h_qkv_bias = (float *)malloc(sizeof(float) * hidden_units);
+    std::vector<float> h_qkv_bias(hidden_units, 2.0f);
     float *d_qkv_bias;
-    cudaMalloc((void **)&d_qkv_bias, sizeof(float) * hidden_units);
-    for (int i = 0; i < hidden_units; ++i) {
-        h_qkv_bias[i] = 2.0f;
-    }
+    cudaMalloc(reinterpret_cast<void **>(&d_qkv_bias), sizeof(float) * hidden_units);
 
     float *d_attention_output;
-    cudaMalloc((void **)&d_attention_output, sizeof(float) * q_hidden_units * attn_dyn_params.batch_size);
+    cudaMalloc(reinterpret_cast<void **>(&d_attention_output), sizeof(float) * q_hidden_units * attention_dynamic_params.batch_size);
 
-    CHECK(cudaMemcpy(d_attention_input, h_attention_input, sizeof(float) * q_hidden_units * attn_dyn_params.batch_size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_finished, h_finished, sizeof(bool) * attn_dyn_params.batch_size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_all_k_cache, h_all_k_cache, sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_all_v_cache, h_all_v_cache, sizeof(float) * num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_qkv_weights, h_qkv_weights, sizeof(float) * q_hidden_units * hidden_units, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_qkv_bias, h_qkv_bias, sizeof(float) * hidden_units, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_output_weights, h_output_weights, sizeof(float) * q_hidden_units * q_hidden_units, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_attention_input, h_attention_input.data(), sizeof(float) * q_hidden_units * attention_dynamic_params.batch_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_finished, h_finished.data(), sizeof(bool) * attention_dynamic_params.batch_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_all_k_cache, h_all_k_cache.data(), sizeof(float) * num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_all_v_cache, h_all_v_cache.data(), sizeof(float) * num_layers * attention_dynamic_params.batch_size * kv_head_num * max_seq_len * head_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_qkv_weights, h_qkv_weights.data(), sizeof(float) * q_hidden_units * hidden_units, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_qkv_bias, h_qkv_bias.data(), sizeof(float) * hidden_units, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_output_weights, h_output_weights.data(), sizeof(float) * q_hidden_units * q_hidden_units, cudaMemcpyHostToDevice));
 
-    DataType type = getTensorType<float>(); // note: the type should be a class data member!
+    DataType type = getTensorType<float>();
     DataType type_int = getTensorType<int>();
     DataType type_bool = getTensorType<bool>();
-    LlamaAttentionWeights<float> self_attn_weights;
     WeightType wtype = getWeightType<float>();
 
+    LlamaAttentionWeights<float> self_attn_weights;
     self_attn_weights.qkv.data = d_qkv_weights;
     self_attn_weights.qkv.shape = {q_hidden_units, hidden_units};
     self_attn_weights.qkv.type = wtype;
@@ -107,60 +87,39 @@ int main() {
     self_attn_weights.output.shape = {q_hidden_units, q_hidden_units};
     self_attn_weights.output.type = wtype;
 
-    TensorWrapper<float> *attention_input = new TensorWrapper<float>(
-        Device::GPU, type, {attn_dyn_params.batch_size, q_hidden_units}, d_attention_input
-    );
-    TensorWrapper<int> *step = new TensorWrapper<int>(
-        Device::CPU, type_int, {1}, &h_step
-    );
-    TensorWrapper<bool> *finished = new TensorWrapper<bool>(
-        Device::GPU, type_bool, {attn_dyn_params.batch_size}, d_finished
-    );
-    TensorWrapper<int> *layer_id = new TensorWrapper<int>(
-        Device::CPU, type_int, {1}, &h_layer_id
-    );
-    TensorWrapper<float> *attention_output = new TensorWrapper<float>(
-        Device::GPU, type, {attn_dyn_params.batch_size, q_hidden_units}, d_attention_output
-    );
-    TensorWrapper<float> *key_cache = new TensorWrapper<float>(
-        Device::GPU, type, {num_layers, attn_dyn_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_k_cache
-    );
-    TensorWrapper<float> *value_cache = new TensorWrapper<float>(
-        Device::GPU, type, {num_layers, attn_dyn_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_v_cache
-    );
+    auto attention_input = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_input);
+    auto step = std::make_unique<TensorWrapper<int>>(Device::CPU, type_int, {1}, &h_step);
+    auto finished = std::make_unique<TensorWrapper<bool>>(Device::GPU, type_bool, {attention_dynamic_params.batch_size}, d_finished);
+    auto layer_id = std::make_unique<TensorWrapper<int>>(Device::CPU, type_int, {1}, &h_layer_id);
+    auto attention_output = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_output);
+    auto key_cache = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_k_cache);
+    auto value_cache = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_v_cache);
 
-    LLM_CHECK_WITH_INFO(attention_input->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
-    LLM_CHECK_WITH_INFO(step->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
-    LLM_CHECK_WITH_INFO(finished->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
-    LLM_CHECK_WITH_INFO(layer_id->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
+    LLM_CHECK_WITH_INFO(attention_input->data != nullptr, "The data ptr of tensor inserted into TensorMap is nullptr!");
+    LLM_CHECK_WITH_INFO(step->data != nullptr, "The data ptr of tensor inserted into TensorMap is nullptr!");
+    LLM_CHECK_WITH_INFO(finished->data != nullptr, "The data ptr of tensor inserted into TensorMap is nullptr!");
+    LLM_CHECK_WITH_INFO(layer_id->data != nullptr, "The data ptr of tensor inserted into TensorMap is nullptr!");
 
     TensorMap masked_attn_inputs {
-        {"attention_input", attention_input},
+        {"attention_input", attention_input.get()},
         {"sequence_lengths", Tensor(Device::GPU, type, {hidden_units}, d_qkv_bias)},
-        {"total_padding_len", Tensor(Device::GPU, type_int, {attn_dyn_params.batch_size}, d_padding_offset)},
-        {"step", step},
-        {"finished", finished},
-        {"layer_id", layer_id},
+        {"total_padding_len", Tensor(Device::GPU, type_int, {attention_dynamic_params.batch_size}, d_padding_offset)},
+        {"step", step.get()},
+        {"finished", finished.get()},
+        {"layer_id", layer_id.get()}
     };
+
     TensorMap masked_attn_outputs {
-        {"attention_output", attention_output},
-        {"all_k_cache", key_cache},
-        {"all_v_cache", value_cache}
+        {"attention_output", attention_output.get()},
+        {"all_k_cache", key_cache.get()},
+        {"all_v_cache", value_cache.get()}
     };
 
-    LlamaSelfAttentionLayer<float> *self_attn_layer = new LlamaSelfAttentionLayer<float>(
-        head_num, kv_head_num, head_size, attn_static_params, stream, cublas_wrapper, allocator
+    auto self_attn_layer = std::make_unique<LlamaSelfAttentionLayer<float>>(
+        head_num, kv_head_num, head_size, attention_static_params, stream, cublas_wrapper.get(), allocator.get()
     );
-    self_attn_layer->forward(masked_attn_inputs, masked_attn_outputs, self_attn_weights, attn_dyn_params);
+    self_attn_layer->forward(masked_attn_inputs, masked_attn_outputs, self_attn_weights, attention_dynamic_params);
     cudaDeviceSynchronize();
-
-    free(h_attention_input);
-    free(h_all_k_cache);
-    free(h_all_v_cache);
-    free(h_finished);
-    free(h_qkv_weights);
-    free(h_output_weights);
-    free(h_qkv_bias);
 
     cudaFree(d_attention_input);
     cudaFree(d_all_k_cache);
@@ -169,6 +128,13 @@ int main() {
     cudaFree(d_qkv_weights);
     cudaFree(d_output_weights);
     cudaFree(d_qkv_bias);
-    
+    free(h_attention_input.data());
+    free(h_all_k_cache.data());
+    free(h_all_v_cache.data());
+    free(h_finished.data());
+    free(h_qkv_weights.data());
+    free(h_output_weights.data());
+    free(h_qkv_bias.data());
+
     return 0;
 }

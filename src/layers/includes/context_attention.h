@@ -52,7 +52,7 @@ public:
         BaseAllocator *allocator
     );
 
-    LlamaAttentionStaticParams *getAttnStaticParams() {
+    LlamaAttentionStaticParams *getAttentionStaticParams() {
         return attention_static_params;
     }
 

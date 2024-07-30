@@ -163,7 +163,7 @@ void LlamaContextDecoder<T>::forward(
             context_attention_outputs,
             layerWeights->at(layer_id)->self_attn_weight,
             dyn_params,
-            context_attention->getAttnStaticParams()
+            context_attention->getAttentionStaticParams()
         );
 
         launchFusedAddBiasResidualAndRMSNorm(

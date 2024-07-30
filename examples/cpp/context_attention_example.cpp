@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
 
     std::cout<< "3rd!" << std::endl;
 
-    // Forward pass
+    // forward pass
     context_attention->forward(
         &context_attention_inputs, 
         &context_attention_outputs, 
