@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
+#include <cstdio>
 #include "../utils/cuda_debug_utils.cuh"
 #include "includes/decoder_self_attention.h"
 
@@ -72,6 +73,9 @@ __global__ void maskedMultiHeadAttention(
     const int rotary_embedding_dim, 
     const float rotary_embedding_base
 ) {
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("get into kernel!\n");
+    }
     const int q_batch_id = blockIdx.x / head_num;
     const int q_head_id = blockIdx.x % head_num;
     const int tid = threadIdx.x;
@@ -116,6 +120,9 @@ __global__ void maskedMultiHeadAttention(
         }
         vec_shared_q[tid] = vec_q;
     }
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("added bias!\n");
+    }
     __syncthreads();
 
     const Vec_t vec_zero = ScalarCast2Vector::scalarCastToVector<Vec_t, float>(0.0f);
@@ -139,6 +146,9 @@ __global__ void maskedMultiHeadAttention(
         }
         __syncthreads();
     }
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("calc qkT!\n");
+    }
 
     const T local_logit = tid < step ? static_cast<T>(logits[tid]) : 0;
     __shared__ float row_max, sum_exp;
@@ -147,6 +157,9 @@ __global__ void maskedMultiHeadAttention(
         row_max = block_max;
     }
     __syncthreads();
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("calc softmax max val!\n");
+    }
 
     const T cur_exp = tid < step ? expf(local_logit - row_max) : 0;
     const T block_sum_exp = blockReduce<SumOp, T>(cur_exp);
@@ -154,18 +167,39 @@ __global__ void maskedMultiHeadAttention(
         sum_exp = block_sum_exp + 1e-6f;
     }
     __syncthreads();
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("substracted!\n");
+    }
 
     if (tid < step) {
         logits[tid] = static_cast<T>(cur_exp / sum_exp);
     }
     __syncthreads();
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("calc softmax logits!\n");
+    }
 
     if (tid * vec_size < head_size) {
-        Vec_t vec_attention_score = ScalarCast2Vector::scalarCastToVector<Vec_t, T>(0.0f);
+        if (!blockIdx.x && !threadIdx.x) {
+            printf("got into mha_output STEP 0!\n");
+        }
+        Vec_t vec_attention_score = ScalarCast2Vector::scalarCastToVector<Vec_t, float>(0.0f);
+        if (!blockIdx.x && !threadIdx.x) {
+            printf("got into mha_output STEP 0.5!\n");
+        }
         *reinterpret_cast<Vec_t *>(v_cache + (step - 1) * step_stride + cache_offset) = vec_v;
+
+        if (!blockIdx.x && !threadIdx.x) {
+            printf("got mha_output STEP 1!\n");
+        }
+
+        __syncthreads();
 
         #pragma unroll
         for (int kv_id = 0; kv_id < step; ++kv_id) {
+            if (!blockIdx.x && !threadIdx.x) {
+                printf("STEP 1.5: kv_id = %d, logtis = %.2f!\n", kv_id, logits[kv_id]);
+            }
             Vec_t vec_cached_v = *reinterpret_cast<Vec_t *>(v_cache + kv_id * step_stride + cache_offset);
             VectorizedOperator<Vec_t>::add_assign(
                 vec_attention_score, 
@@ -175,7 +209,14 @@ __global__ void maskedMultiHeadAttention(
                 )
             );
         }
+
+        if (!blockIdx.x && !threadIdx.x) {
+            printf("got mha_output STEP 2!\n");
+        }
         *reinterpret_cast<Vec_t *>(mha_output + q_offset) = vec_attention_score;
+    }
+    if (!blockIdx.x && !threadIdx.x) {
+        printf("got mha_output!\n");
     }
 }
 
@@ -212,6 +253,7 @@ void launchDecoderMaskedMultiHeadAttention(
     TensorWrapper<T> *mha_output, // [batch_size, num_heads, head_size]
     LlamaAttentionStaticParams *static_params
 ) {
+    printf("get in decoder self attention!\n");
     const int batch_size = qkv_buf->shape[0];
     const int qkv_head_num = qkv_buf->shape[1];
     const int head_size = qkv_buf->shape[2];
@@ -236,6 +278,7 @@ void launchDecoderMaskedMultiHeadAttention(
     dim3 grid(head_num * batch_size);
     dim3 block(head_size);
 
+    printf("ready to get into fused kernel!\n");
     maskedMultiHeadAttention<T><<<grid, block, smem_size_bytes>>>(
         q, 
         k, 

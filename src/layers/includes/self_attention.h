@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "../../weights/llama/attention_weights.h"
 #include "../../memory/allocator/cuda_allocator.h"
 #include "../../kernels/includes/linear.h"
@@ -32,8 +33,8 @@ private:
     CublasWrapper *cublas_wrapper;
 
     // Intermediate buffers
-    TensorWrapper<T> *qkv_buf = nullptr;     // For qkv linear output and rope input/output
-    TensorWrapper<T> *mha_output = nullptr;  // MHA output, then invoke a linear to attention output
+    std::unique_ptr<TensorWrapper<T>> qkv_buf;
+    std::unique_ptr<TensorWrapper<T>> mha_output;
 
 public:
     LlamaSelfAttentionLayer(
@@ -42,7 +43,7 @@ public:
         int head_size,
         LlamaAttentionStaticParams *attention_params,
         cudaStream_t stream,
-        cublasWrapper *cublas_wrapper,
+        CublasWrapper *cublas_wrapper,
         BaseAllocator *allocator
     );
 

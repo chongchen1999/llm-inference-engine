@@ -1,5 +1,4 @@
 #include <math.h>
-#include <memory>
 #include "../utils/debug_utils.h"
 #include "includes/self_attention.h"
 
@@ -10,7 +9,7 @@ LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
     int head_size,
     LlamaAttentionStaticParams *attention_static_params,
     cudaStream_t stream,
-    cublasWrapper *cublas_wrapper,
+    CublasWrapper *cublas_wrapper,
     BaseAllocator *allocator
 ) :
     head_num(head_num),
@@ -22,7 +21,7 @@ LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
     hidden_units(head_num * head_size),
     attention_static_params(attention_static_params),
     // TODO: Check if kv_head_num is divisible by head_num
-    q_head_per_kv(head_num / kv_head_num),
+    repeats_per_kv(head_num / kv_head_num),
     scale(1.0f / sqrt(static_cast<float>(head_size))) {}
 
 template<typename T>
@@ -36,8 +35,8 @@ void LlamaSelfAttentionLayer<T>::allocateMemory(LlamaAttentionDynamicParams *par
 
     // () Note: Current step's q, k, v shapes have step or seqlen as 1. 
     // Previous step's kv is directly used from kv cache during gemv.
-    qkv_buf = std::make_unique<TensorWrapper<T>>(Device::GPU, type, {batch_size, qkv_head_num, head_size});
-    mha_output = std::make_unique<TensorWrapper<T>>(Device::GPU, type, {batch_size, hidden_units});
+    qkv_buf = std::unique_ptr<TensorWrapper<T>>(new TensorWrapper<T>(Device::GPU, type, {batch_size, qkv_head_num, head_size}));
+    mha_output = std::unique_ptr<TensorWrapper<T>>(new TensorWrapper<T>(Device::GPU, type, {batch_size, hidden_units}));
 
     allocator->malloc(
         &qkv_buf->data,
@@ -72,15 +71,15 @@ void LlamaSelfAttentionLayer<T>::forward(
 ) {   
     // Note: Allocate intermediate buffer for layer forward
     allocateMemory(params);
-    printf("allocated!\n")
+    printf("allocated!\n");
 
     // 1. qkv linear
     // Shape: [bs, 1, q_hidden_units] * [q_hidden_units, qkv_hidden_units] = [bs, 1, qkv_hidden_units]
-    Tensor *attention_input = inputs->at("attention_input");
+    Tensor *attention_input = inputs->at("attention_input"); // [bs, 1, q_hidden_units]
     launchLinearGemm(
         attention_input->wrap<T>(),
         &weights->qkv,
-        qkv_buf,
+        qkv_buf.get(),
         cublas_wrapper,
         false,
         weights->qkv.is_transposed
@@ -99,7 +98,7 @@ void LlamaSelfAttentionLayer<T>::forward(
     Tensor *layer_id = inputs->at("layer_id"); // [1] on CPU
 
     launchRope(
-        qkv_buf,
+        qkv_buf.get(),
         step->wrap<int>(),
         attention_static_params
     );
@@ -108,14 +107,14 @@ void LlamaSelfAttentionLayer<T>::forward(
 
     // 3. fused masked mha
     launchDecoderMaskedMultiHeadAttention<T>(
-        qkv_buf,
+        qkv_buf.get(),
         &weights->qkv,
         layer_id->wrap<int>(),
         key_cache->wrap<T>(),
         value_cache->wrap<T>(),
         finished->wrap<bool>(),
         step->wrap<int>(),
-        mha_output,
+        mha_output.get(),
         attention_static_params
     );
     DeviceSyncAndCheckCudaError();
@@ -131,7 +130,7 @@ void LlamaSelfAttentionLayer<T>::forward(
 
     // 4. attention output linear
     launchLinearGemm(
-        mha_output,
+        mha_output.get(),
         &weights->output,
         attention_output->wrap<T>(),
         cublas_wrapper,

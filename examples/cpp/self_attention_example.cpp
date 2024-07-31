@@ -31,7 +31,7 @@ int main() {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto cublas_wrapper = std::make_unique<cublasWrapper>(cublas_handle, cublaslt_handle);
+    auto cublas_wrapper = std::make_unique<CublasWrapper>(cublas_handle, cublaslt_handle);
     auto allocator = std::make_unique<CudaAllocator>();
 
     // Prepare input, weight, and output data
@@ -98,13 +98,34 @@ int main() {
     self_attention_weights.output.shape = {q_hidden_units, q_hidden_units};
     self_attention_weights.output.type = wtype;
 
-    auto attention_input = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_input);
-    auto step = std::make_unique<TensorWrapper<int>>(Device::CPU, type_int, {1}, &h_step);
-    auto finished = std::make_unique<TensorWrapper<bool>>(Device::GPU, type_bool, {attention_dynamic_params.batch_size}, d_finished);
-    auto layer_id = std::make_unique<TensorWrapper<int>>(Device::CPU, type_int, {1}, &h_layer_id);
-    auto attention_output = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_output);
-    auto key_cache = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_k_cache);
-    auto value_cache = std::make_unique<TensorWrapper<float>>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_v_cache);
+    std::unique_ptr<TensorWrapper<float>> attention_input(
+        new TensorWrapper<float>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_input)
+    );
+
+    std::unique_ptr<TensorWrapper<int>> step(
+        new TensorWrapper<int>(Device::CPU, type_int, {1}, const_cast<int *>(&h_step))
+    );
+
+    std::unique_ptr<TensorWrapper<bool>> finished(
+        new TensorWrapper<bool>(Device::GPU, type_bool, {attention_dynamic_params.batch_size}, d_finished)
+    );
+
+    std::unique_ptr<TensorWrapper<int>> layer_id(
+        new TensorWrapper<int>(Device::CPU, type_int, {1}, const_cast<int *>(&h_layer_id))
+    );
+
+    std::unique_ptr<TensorWrapper<float>> attention_output(
+        new TensorWrapper<float>(Device::GPU, type, {attention_dynamic_params.batch_size, q_hidden_units}, d_attention_output)
+    );
+
+    std::unique_ptr<TensorWrapper<float>> key_cache(
+        new TensorWrapper<float>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_k_cache)
+    );
+
+    std::unique_ptr<TensorWrapper<float>> value_cache(
+        new TensorWrapper<float>(Device::GPU, type, {num_layers, attention_dynamic_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_v_cache)
+    );
+
 
     LLM_CHECK_WITH_INFO(attention_input->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
     LLM_CHECK_WITH_INFO(step->data != nullptr, "the data ptr of tensor inserted into TensorMap is nullptr!");
@@ -128,7 +149,7 @@ int main() {
         head_num,
         kv_head_num,
         head_size,
-        attention_static_params,
+        &attention_static_params,
         stream,
         cublas_wrapper.get(),
         allocator.get()
@@ -137,10 +158,10 @@ int main() {
     std::cout<< "ready!\n" << std::endl;
 
     self_attn_layer->forward(
-        self_attention_inputs,
-        self_attention_outputs,
-        self_attention_weights,
-        attention_dynamic_params
+        &self_attention_inputs,
+        &self_attention_outputs,
+        &self_attention_weights,
+        &attention_dynamic_params
     );
     cudaDeviceSynchronize();
 

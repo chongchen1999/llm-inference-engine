@@ -4,3 +4,8 @@ add_executable(context_attention_example context_attention_example.cpp)
 set_property(TARGET context_attention_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
 set_property(TARGET context_attention_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(context_attention_example PUBLIC -lcudart -lcudadevrt llama_context_attention)
+
+add_executable(self_attention_example self_attention_example.cpp)
+set_property(TARGET self_attention_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
+set_property(TARGET self_attention_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
+target_link_libraries(self_attention_example PUBLIC -lcudart -lcudadevrt llama_self_attention)

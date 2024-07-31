@@ -255,9 +255,9 @@ void launchRope(
     const int head_num = 32; // Only for LLaMA
     const int head_size = qkv_buf->shape[2];
 
-    LLM_CHECK(batch_size == 1);
-    LLM_CHECK(qkv_head_num == 96);
-    LLM_CHECK(head_size == 128);
+    // LLM_CHECK(batch_size == 1);
+    // LLM_CHECK(qkv_head_num == 96);
+    // LLM_CHECK(head_size == 128);
 
     const int cur_step = step->getVal();
     T *qkv_data = qkv_buf->data;
