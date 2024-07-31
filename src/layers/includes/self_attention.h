@@ -40,7 +40,7 @@ public:
         int head_num,
         int kv_head_num,
         int head_size,
-        LlamaAttentionStaticParams *attn_params,
+        LlamaAttentionStaticParams *attention_params,
         cudaStream_t stream,
         cublasWrapper *cublas_wrapper,
         BaseAllocator *allocator

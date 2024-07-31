@@ -1,6 +1,7 @@
 #include <math.h>
+#include <memory>
 #include "../utils/debug_utils.h"
-#include "../layers/includes/self_attention.h"
+#include "includes/self_attention.h"
 
 template<typename T>
 LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
@@ -25,7 +26,7 @@ LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
     scale(1.0f / sqrt(static_cast<float>(head_size))) {}
 
 template<typename T>
-void LlamaSelfAttentionLayer<T>::allocateMemoryForForward(LlamaAttentionDynamicParams *params) {
+void LlamaSelfAttentionLayer<T>::allocateMemory(LlamaAttentionDynamicParams *params) {
     const int batch_size = params->batch_size;
     const int num_tokens = params->num_tokens;
     const int max_q_len = params->max_q_len;
@@ -35,8 +36,8 @@ void LlamaSelfAttentionLayer<T>::allocateMemoryForForward(LlamaAttentionDynamicP
 
     // () Note: Current step's q, k, v shapes have step or seqlen as 1. 
     // Previous step's kv is directly used from kv cache during gemv.
-    qkv_buf = new TensorWrapper<T>(Device::GPU, type, { batch_size, qkv_head_num, head_size });
-    mha_output = new TensorWrapper<T>(Device::GPU, type, { batch_size, hidden_units });
+    qkv_buf = std::make_unique<TensorWrapper<T>>(Device::GPU, type, {batch_size, qkv_head_num, head_size});
+    mha_output = std::make_unique<TensorWrapper<T>>(Device::GPU, type, {batch_size, hidden_units});
 
     allocator->malloc(
         &qkv_buf->data,
@@ -60,7 +61,7 @@ void LlamaSelfAttentionLayer<T>::freeBuf() {
     DeviceSyncAndCheckCudaError();
 }
 
-// () Note: Params order of the launcher function in LaMAContextAttentionLayer<T>::forward: 
+// Params order of the launcher function in LaMAContextAttentionLayer<T>::forward: 
 // (input[Tensor], input[Tensor], ..., weight[Weight], output[*])
 template<typename T>
 void LlamaSelfAttentionLayer<T>::forward(
@@ -69,7 +70,7 @@ void LlamaSelfAttentionLayer<T>::forward(
     LlamaAttentionWeights<T> *weights,
     LlamaAttentionDynamicParams *params
 ) {   
-    // () Note: Allocate intermediate buffer for layer forward
+    // Note: Allocate intermediate buffer for layer forward
     allocateMemory(params);
     printf("allocated!\n")
 
