@@ -57,10 +57,10 @@ __device__ T blockReduce(T val) {
 */
 template <typename T>
 __global__ void maskedMultiHeadAttention(
-    T *const q, // [bs, head_num, 1, head_size]
-    T *const k, // [bs, kv_head_num, 1, head_size]
-    T *const v, // [bs, kv_head_num, 1, head_size]
-    const T *const qkv_bias, // bias, [qkv_head_num * head_size]
+    T *const q, // [bs, head_num, 1, head_size] or [bs, head_num, head_size]
+    T *const k, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
+    T *const v, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
+    const T *const qkv_bias, // bias, [qkv_head_num * head_size] aka [qkv_hidden_units]
     T *const k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
     T *const v_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
     T *const mha_output, // [batch_size, num_heads, head_size]
@@ -73,34 +73,34 @@ __global__ void maskedMultiHeadAttention(
     const int rotary_embedding_dim, 
     const float rotary_embedding_base
 ) {
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("get into kernel!\n");
-    }
-    const int q_batch_id = blockIdx.x / head_num;
-    const int q_head_id = blockIdx.x % head_num;
+    const int q_hidden_units_id = blockIdx.x / head_num;
+    const int q_head_id = blockIdx.x - q_hidden_units_id * head_num;
     const int tid = threadIdx.x;
 
-    const int kv_batch_id = q_batch_id;
-    const int repeated_kv_heads = head_num / kv_head_num;
-    const int kv_head_id = q_head_id / repeated_kv_heads;
+    const int kv_hidden_units_id = q_hidden_units_id;
+    const int kv_repeats_num = head_num / kv_head_num;
+    const int kv_head_id = q_head_id / kv_repeats_num;
 
-    const int batch_stride = head_num * head_size;
-    const int kv_batch_stride = kv_head_num * head_size;
+    const int q_hidden_units = head_num * head_size;
+    const int kv_hidden_units = kv_head_num * head_size;
     const int head_stride = head_size;
-    const int q_offset = q_batch_id * batch_stride + q_head_id * head_stride + tid;
-    const int k_offset = kv_batch_id * kv_batch_stride + kv_head_id * head_stride + tid;
+    const int q_offset = q_hidden_units_id * q_hidden_units + q_head_id * head_stride + tid;
+    const int kv_offset = kv_hidden_units_id * kv_hidden_units + kv_head_id * head_stride + tid;
 
     const int vec_size = Vec<T>::size;
-    const int vec_q_offset = q_batch_id * batch_stride + q_head_id * head_stride + tid * vec_size;
-    const int vec_kv_offset = kv_batch_id * kv_batch_stride + kv_head_id * head_stride + tid * vec_size;
-    const int cache_offset = kv_batch_id * kv_head_num * max_seq_len * head_size +
-                             kv_head_id * max_seq_len * head_size + tid * vec_size;
+    const int vec_q_offset = q_hidden_units_id * q_hidden_units + q_head_id * head_stride + tid * vec_size;
+    const int vec_kv_offset = kv_hidden_units_id * kv_hidden_units + kv_head_id * head_stride + tid * vec_size;
+
+    // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
+    const int cache_offset = 
+        kv_hidden_units_id * kv_head_num * max_seq_len * head_size +
+        kv_head_id * max_seq_len * head_size + tid * vec_size;
 
     const int step_stride = head_size;
     const float scale = rsqrt(static_cast<float>(head_size));
     using Vec_t = typename Vec<T>::Type;
 
-    extern __shared__ char shared_qk[];
+    extern __shared__ char shared_qk[]; //head_size * sizeof(T) + cur_step * sizeof(float);
     T *const shared_q = reinterpret_cast<T *>(shared_qk);
     float *const logits = reinterpret_cast<float *>(shared_q + head_size);
     Vec_t *const vec_shared_q = reinterpret_cast<Vec_t *>(shared_q);
@@ -110,7 +110,7 @@ __global__ void maskedMultiHeadAttention(
     Vec_t &vec_v = *reinterpret_cast<Vec_t *>(v + vec_kv_offset);
 
     if (tid * vec_size < head_size) {
-        if (qkv_bias != nullptr) {
+        if (qkv_bias) {
             const Vec_t q_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + q_head_id * head_size + tid * vec_size);
             const Vec_t k_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + (head_num + kv_head_id) * head_size + tid * vec_size);
             const Vec_t v_bias = *reinterpret_cast<const Vec_t *>(qkv_bias + (head_num + kv_head_num + kv_head_id) * head_size + tid * vec_size);
@@ -119,9 +119,6 @@ __global__ void maskedMultiHeadAttention(
             VectorizedOperator<Vec_t>::add_assign(vec_v, v_bias);
         }
         vec_shared_q[tid] = vec_q;
-    }
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("added bias!\n");
     }
     __syncthreads();
 
@@ -146,9 +143,6 @@ __global__ void maskedMultiHeadAttention(
         }
         __syncthreads();
     }
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("calc qkT!\n");
-    }
 
     const T local_logit = tid < step ? static_cast<T>(logits[tid]) : 0;
     __shared__ float row_max, sum_exp;
@@ -157,9 +151,6 @@ __global__ void maskedMultiHeadAttention(
         row_max = block_max;
     }
     __syncthreads();
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("calc softmax max val!\n");
-    }
 
     const T cur_exp = tid < step ? expf(local_logit - row_max) : 0;
     const T block_sum_exp = blockReduce<SumOp, T>(cur_exp);
@@ -167,39 +158,21 @@ __global__ void maskedMultiHeadAttention(
         sum_exp = block_sum_exp + 1e-6f;
     }
     __syncthreads();
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("substracted!\n");
-    }
 
     if (tid < step) {
         logits[tid] = static_cast<T>(cur_exp / sum_exp);
     }
     __syncthreads();
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("calc softmax logits!\n");
-    }
 
     if (tid * vec_size < head_size) {
         if (!blockIdx.x && !threadIdx.x) {
             printf("got into mha_output STEP 0!\n");
         }
-        Vec_t vec_attention_score = ScalarCast2Vector::scalarCastToVector<Vec_t, float>(0.0f);
-        if (!blockIdx.x && !threadIdx.x) {
-            printf("got into mha_output STEP 0.5!\n");
-        }
+        Vec_t vec_attention_score = vec_zero;
         *reinterpret_cast<Vec_t *>(v_cache + (step - 1) * step_stride + cache_offset) = vec_v;
-
-        if (!blockIdx.x && !threadIdx.x) {
-            printf("got mha_output STEP 1!\n");
-        }
-
-        __syncthreads();
 
         #pragma unroll
         for (int kv_id = 0; kv_id < step; ++kv_id) {
-            if (!blockIdx.x && !threadIdx.x) {
-                printf("STEP 1.5: kv_id = %d, logtis = %.2f!\n", kv_id, logits[kv_id]);
-            }
             Vec_t vec_cached_v = *reinterpret_cast<Vec_t *>(v_cache + kv_id * step_stride + cache_offset);
             VectorizedOperator<Vec_t>::add_assign(
                 vec_attention_score, 
@@ -210,13 +183,7 @@ __global__ void maskedMultiHeadAttention(
             );
         }
 
-        if (!blockIdx.x && !threadIdx.x) {
-            printf("got mha_output STEP 2!\n");
-        }
-        *reinterpret_cast<Vec_t *>(mha_output + q_offset) = vec_attention_score;
-    }
-    if (!blockIdx.x && !threadIdx.x) {
-        printf("got mha_output!\n");
+        *reinterpret_cast<Vec_t *>(mha_output + vec_q_offset) = vec_attention_score;
     }
 }
 
@@ -243,14 +210,14 @@ __global__ void maskedMultiHeadAttention(
 
 template <typename T>
 void launchDecoderMaskedMultiHeadAttention(
-    TensorWrapper<T> *qkv_buf, // [bs, qkv_head_num, 1, head_size]
+    TensorWrapper<T> *qkv_buf, // [bs, qkv_head_num, 1, head_size] or [bs, qkv_head_num, head_size]
     BaseWeight<T> *qkv, // bias, [qkv_head_num * head_size]
     TensorWrapper<int> *layer_id, // [layer_num]
     TensorWrapper<T> *k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
     TensorWrapper<T> *v_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
     TensorWrapper<bool> *finished, // [batch_size]
-    TensorWrapper<int> *step, // ?[max_seq_len]
-    TensorWrapper<T> *mha_output, // [batch_size, num_heads, head_size]
+    TensorWrapper<int> *step, // [layer_num]
+    TensorWrapper<T> *mha_output, // [batch_size, num_heads, head_size] or [bs, q_hidden_units]
     LlamaAttentionStaticParams *static_params
 ) {
     printf("get in decoder self attention!\n");

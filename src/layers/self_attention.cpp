@@ -1,6 +1,7 @@
 #include <math.h>
 #include "../utils/debug_utils.h"
 #include "includes/self_attention.h"
+#include "../utils/output_utils.h"
 
 template<typename T>
 LlamaSelfAttentionLayer<T>::LlamaSelfAttentionLayer(
@@ -76,6 +77,8 @@ void LlamaSelfAttentionLayer<T>::forward(
     // 1. qkv linear
     // Shape: [bs, 1, q_hidden_units] * [q_hidden_units, qkv_hidden_units] = [bs, 1, qkv_hidden_units]
     Tensor *attention_input = inputs->at("attention_input"); // [bs, 1, q_hidden_units]
+    printf("attention_input shape:\n");
+    print_tensor(attention_input);
     launchLinearGemm(
         attention_input->wrap<T>(),
         &weights->qkv,
@@ -104,6 +107,23 @@ void LlamaSelfAttentionLayer<T>::forward(
     );
     DeviceSyncAndCheckCudaError();
     printf("rope!\n");
+
+    printf("qkv_buf shape:\n");
+    print_tensor(qkv_buf.get());
+    printf("qkv_bias shape:\n");
+    print_weight(&weights->qkv);
+    printf("layer_id shape:\n");
+    print_tensor(layer_id);
+    printf("key_cache shape:\n");
+    print_tensor(key_cache);
+    printf("value_cache shape:\n");
+    print_tensor(value_cache);
+    printf("finished shape:\n");
+    print_tensor(finished);
+    printf("step shape:\n");
+    print_tensor(step);
+    printf("mha_output shape:\n");
+    print_tensor(mha_output.get());
 
     // 3. fused masked mha
     launchDecoderMaskedMultiHeadAttention<T>(

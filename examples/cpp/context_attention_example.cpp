@@ -5,11 +5,11 @@
 #include "../../src/layers/includes/context_attention.h"
 
 int main(int argc, char **argv) {
-    constexpr int head_num = 4;
-    constexpr int kv_head_num = 2;
-    constexpr int head_size = 8;
-    constexpr int num_layers = 1;
-    constexpr int max_seq_len = 12; // Max context length for KV cache
+    constexpr int head_num = 8;
+    constexpr int kv_head_num = 8;
+    constexpr int head_size = 32;
+    constexpr int num_layers = 8;
+    constexpr int max_seq_len = 256; // Max context length for KV cache
     const int hidden_units = (head_num + 2 * kv_head_num) * head_size;
     const int q_hidden_units = head_num * head_size;
 

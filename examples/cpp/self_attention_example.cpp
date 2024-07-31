@@ -6,12 +6,12 @@
 #include "../../src/layers/includes/self_attention.h"
 
 int main() {
-    const int h_step = 3;
-    const int head_num = 4;
-    const int kv_head_num = 2;
-    const int head_size = 8;
-    const int num_layers = 1;
-    const int max_seq_len = 12;
+    const int h_step = 8;
+    const int head_num = 8;
+    const int kv_head_num = 8;
+    const int head_size = 64;
+    const int num_layers = 8;
+    const int max_seq_len = 256;
     const int hidden_units = (head_num + 2 * kv_head_num) * head_size;
     const int q_hidden_units = head_num * head_size;
 
@@ -20,6 +20,9 @@ int main() {
     attention_static_params.rotary_embedding_base = 10000;
     attention_static_params.max_position_embeddings = 2048;
     attention_static_params.use_dynamic_ntk = false; // for dynamic scaling rope
+    attention_static_params.head_num = head_num;
+    attention_static_params.kv_head_num = kv_head_num;
+    attention_static_params.head_size = head_size;
 
     LlamaAttentionDynamicParams attention_dynamic_params;
     attention_dynamic_params.batch_size = 2;

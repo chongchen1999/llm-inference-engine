@@ -252,12 +252,9 @@ void launchRope(
 ) {
     const int batch_size = qkv_buf->shape[0];
     const int qkv_head_num = qkv_buf->shape[1];
-    const int head_num = 32; // Only for LLaMA
+    const int head_num = static_params->head_num;
+    const int kv_head_num = static_params->kv_head_num;
     const int head_size = qkv_buf->shape[2];
-
-    // LLM_CHECK(batch_size == 1);
-    // LLM_CHECK(qkv_head_num == 96);
-    // LLM_CHECK(head_size == 128);
 
     const int cur_step = step->getVal();
     T *qkv_data = qkv_buf->data;
@@ -275,7 +272,7 @@ void launchRope(
         k,
         batch_size,
         head_num,
-        head_num, // Only for LLaMA, kv_head = head
+        kv_head_num,
         head_size,
         cur_step,
         rotary_embedding_dim,
