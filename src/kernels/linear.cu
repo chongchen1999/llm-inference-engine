@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include "includes/linear.h"
 
 /*
@@ -45,29 +46,26 @@ void launchLinearGemm(
         Cn = output->shape[1] * output->shape[2];
     }
 
-    const int opAm = trans_a ? An : Am;
-    const int opAn = trans_a ? Am : An;
-    const int opBm = trans_b ? Bn : Bm;
-    const int opBn = trans_b ? Bm : Bn;
+    int opAm = Am;
+    int opAn = An;
+    int opBm = Bm;
+    int opBn = Bn;
+    if (trans_a) {
+        std::swap(opAm, opAn);
+    }
+    if (trans_b) {
+        std::swap(opBm, opBn);
+    }
+    int lda = opAn; //col-major + transpose
+    int ldb = opBn; //col-major + transpose
+    int ldc = Cn; //col-major + transpose
 
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
 
-    // We need to compute C = opA * opB, actually compute: CT = (opB)T * (opA)T
-    const int lda = opAn; // leading dim for (opA)T in col-major
-    const int ldb = opBn;
-    const int ldc = Cn;
-
-    // Two transposes make no transpose
-    const auto transA = trans_a ? CUBLAS_OP_N : CUBLAS_OP_T;
-    const auto transB = trans_b ? CUBLAS_OP_N : CUBLAS_OP_T;
-
-    // We need C = opA * opB, 
-    // feed CT = opBT * opAT to cuBLAS,
-    // cuBLAS returns CT in col-major, that is C in row-major
     cublas_wrapper->gemm(
-        transA,
-        transB,
+        CUBLAS_OP_N,
+        CUBLAS_OP_N,
         Cn,
         Cm,
         opAn,

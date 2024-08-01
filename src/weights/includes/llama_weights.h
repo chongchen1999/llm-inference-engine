@@ -2,16 +2,16 @@
 
 #include <string>
 #include <vector>
-#include "src/weights/weight.h"
-#include "src/weights/base_weights.h"
-#include "src/weights/llama/embedding_weights.h"
-#include "src/weights/llama/layer_weights.h"
+#include "weight.h"
+#include "base_weights.h"
+#include "embedding_weights.h"
+#include "layer_weights.h"
 
 template<typename T>
 class LlamaWeight : public Weight {
 private:
     int hidden_units;
-    int inter_size;
+    int intermediate_size;
     int vocab_size;
     int vocab_size_padded;
     int num_layer;
@@ -29,15 +29,15 @@ public:
         int head_num,
         int kv_head_num,
         int head_size,
-        int inter_size,
+        int intermediate_size,
         int vocab_size,
         int num_layer,
-        bool attn_bias,
+        bool attention_bias,
         WeightType weight_type
     );
 
     ~LlamaWeight();
 
-    void loadWeights(const std::string &weight_path);
+    void loadWeightsFromFile(const std::string &weight_path);
     void loadWeightsFromDummy();
 };

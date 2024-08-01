@@ -3,8 +3,8 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
-#include "../../weights/base_weights.h"
-#include "../../weights/llama/norm_weights.h"
+#include "../../weights/includes/base_weights.h"
+#include "../../weights/includes/norm_weights.h"
 #include "../../utils/tensor.h"
 #include "../../utils/vectorize_utils.h"
 

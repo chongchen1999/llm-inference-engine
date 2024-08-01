@@ -89,7 +89,7 @@ void LlamaSelfDecoder<T>::forward(
         launchRMSNorm(
             decoder_input->wrap<T>(), // in&out, [bs, q_hidden_units]
             decoder_residual, // rmsnorm input hidden states, as input of next add residual
-            layerWeights->at(layer_id)->attn_norm_weight, // rmsnorm weights, [q_hidden_units]
+            layerWeights->at(layer_id)->attention_norm_weight, // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );
 
@@ -98,14 +98,14 @@ void LlamaSelfDecoder<T>::forward(
         self_attention->forward(
             self_attn_inputs, 
             self_attn_outputs, 
-            layerWeights->at(layer_id)->self_attn_weight, 
+            layerWeights->at(layer_id)->self_attention_weight, 
             dyn_params
         );
 
         launchFusedAddBiasResidualAndRMSNorm(
             decoder_residual, // in residual from tensor before rmsnorm and return decoder_residual + decoder_output, [bs, q_hidden_units]
             decoder_output->wrap<T>(), // in&out from attention output, [bs, q_hidden_units]
-            layerWeights->at(layer_id)->self_attn_weight.output, // bias
+            layerWeights->at(layer_id)->self_attention_weight.output, // bias
             layerWeights->at(layer_id)->ffn_norm_weight.gamma, // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );

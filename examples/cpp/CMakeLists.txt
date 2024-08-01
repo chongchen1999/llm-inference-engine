@@ -9,3 +9,8 @@ add_executable(self_attention_example self_attention_example.cpp)
 set_property(TARGET self_attention_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
 set_property(TARGET self_attention_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(self_attention_example PUBLIC -lcudart -lcudadevrt llama_self_attention)
+
+add_executable(ffn_example ffn_example.cpp)
+set_property(TARGET ffn_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
+set_property(TARGET ffn_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
+target_link_libraries(ffn_example PUBLIC -lcudart -lcudadevrt llama_ffn)

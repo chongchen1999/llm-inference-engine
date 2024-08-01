@@ -1,19 +1,22 @@
 #include <iostream>
-#include "src/weights/llama/llama_weights.h"
+#include <vector>
+#include <memory>
+#include <string>
+#include "includes/llama_weights.h"
 
 template<typename T>
 LlamaWeight<T>::LlamaWeight(
     int head_num,
     int kv_head_num,
     int head_size,
-    int inter_size,
+    int intermediate_size,
     int vocab_size,
     int num_layer,
-    bool attn_bias,
+    bool attention_bias,
     WeightType weight_type
 ) :
     hidden_units(head_num * head_size),
-    inter_size(inter_size),
+    intermediate_size(intermediate_size),
     vocab_size(vocab_size),
     vocab_size_padded(vocab_size),
     num_layer(num_layer),
@@ -22,14 +25,14 @@ LlamaWeight<T>::LlamaWeight(
     llama_layer_weight.reserve(num_layer);
     for (int l = 0; l < num_layer; ++l) {
         llama_layer_weight.push_back(
-            new LlamaLayerWeight<T>(
+            std::make_unique<LlamaLayerWeight<T>>(
                 head_num,
                 kv_head_num,
                 head_size,
-                inter_size,
+                intermediate_size,
                 weight_type,
-                attn_bias
-            )
+                attention_bias
+            ).get()
         );
     }
 
@@ -43,31 +46,29 @@ LlamaWeight<T>::LlamaWeight(
     post_decoder_embedding_weight.type = weight_type;
 }
 
-// Note: Weight from HF is always half type. For fp32 inference, convert half weight to fp32 weight in tools/weights_convert.py.
-// Note: Shape and data of embedding and LMHead weight from HF are transposed. Ensure correct shape declaration.
 template<typename T>
-void LlamaWeight<T>::loadWeights(const std::string *weight_path) {
+void LlamaWeight<T>::loadWeightsFromFile(const std::string &weight_path) {
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         out_rmsnorm_weight.gamma,
         { static_cast<size_t>(hidden_units) },
-        *weight_path + "model.norm.weight.bin"
+        weight_path + "model.norm.weight.bin"
     );
 
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         post_decoder_embedding_weight.data,
         { static_cast<size_t>(vocab_size), static_cast<size_t>(hidden_units) },
-        *weight_path + "lm_head.weight.bin"
+        weight_path + "lm_head.weight.bin"
     );
 
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         pre_decoder_embedding_weight.data,
         { static_cast<size_t>(vocab_size), static_cast<size_t>(hidden_units) },
-        *weight_path + "model.embed_tokens.weight.bin"
+        weight_path + "model.embed_tokens.weight.bin"
     );
 
     for (int layer = 0; layer < num_layer; ++layer) {
-        llama_layer_weight[layer]->loadWeights(
-            *weight_path + "model.layers." + std::to_string(layer),
+        llama_layer_weight[layer]->loadWeightsFromFile(
+            weight_path + "model.layers." + std::to_string(layer),
             weight_type
         );
     }
@@ -83,36 +84,36 @@ void LlamaWeight<T>::loadWeightsFromDummy() {
     GPUMalloc(&d_dummy_post_decoder_embedding_weight, sizeof(T) * hidden_units * vocab_size);
     GPUMalloc(&d_dummy_pre_decoder_embedding_weight, sizeof(T) * hidden_units * vocab_size);
 
-    T *h_dummy_out_rmsnorm_weight_gamma = static_cast<T *>(malloc(sizeof(T) * hidden_units));
-    T *h_dummy_post_decoder_embedding_weight = static_cast<T *>(malloc(sizeof(T) * hidden_units * vocab_size));
-    T *h_dummy_pre_decoder_embedding_weight = static_cast<T *>(malloc(sizeof(T) * hidden_units * vocab_size));
+    auto h_dummy_out_rmsnorm_weight_gamma = std::make_unique<T[]>(hidden_units);
+    auto h_dummy_post_decoder_embedding_weight = std::make_unique<T[]>(hidden_units * vocab_size);
+    auto h_dummy_pre_decoder_embedding_weight = std::make_unique<T[]>(hidden_units * vocab_size);
 
     auto fillArray = [](T *array, size_t size) {
         for (size_t i = 0; i < size; ++i) {
             array[i] = 1.0f;
         }
     };
-    fillArray(h_dummy_out_rmsnorm_weight_gamma, hidden_units);
-    fillArray(h_dummy_post_decoder_embedding_weight, hidden_units * vocab_size);
-    fillArray(h_dummy_pre_decoder_embedding_weight, hidden_units * vocab_size);
+    fillArray(h_dummy_out_rmsnorm_weight_gamma.get(), hidden_units);
+    fillArray(h_dummy_post_decoder_embedding_weight.get(), hidden_units * vocab_size);
+    fillArray(h_dummy_pre_decoder_embedding_weight.get(), hidden_units * vocab_size);
 
     cudaMemcpy(
         d_dummy_out_rmsnorm_weight_gamma,
-        h_dummy_out_rmsnorm_weight_gamma,
+        h_dummy_out_rmsnorm_weight_gamma.get(),
         sizeof(T) * hidden_units,
         cudaMemcpyHostToDevice
     );
 
     cudaMemcpy(
         d_dummy_post_decoder_embedding_weight,
-        h_dummy_post_decoder_embedding_weight,
+        h_dummy_post_decoder_embedding_weight.get(),
         sizeof(T) * hidden_units * vocab_size,
         cudaMemcpyHostToDevice
     );
 
     cudaMemcpy(
         d_dummy_pre_decoder_embedding_weight,
-        h_dummy_pre_decoder_embedding_weight,
+        h_dummy_pre_decoder_embedding_weight.get(),
         sizeof(T) * hidden_units * vocab_size,
         cudaMemcpyHostToDevice
     );
@@ -122,7 +123,7 @@ void LlamaWeight<T>::loadWeightsFromDummy() {
     pre_decoder_embedding_weight.data = d_dummy_pre_decoder_embedding_weight;
 
     for (int layer = 0; layer < num_layer; ++layer) {
-        llama_layer_weight[layer]->loadWeights();
+        llama_layer_weight[layer]->loadWeightsFromFile();
     }
 }
 
@@ -132,8 +133,8 @@ LlamaWeight<T>::~LlamaWeight() {
     cudaFree(out_rmsnorm_weight.gamma);
     cudaFree(post_decoder_embedding_weight.data);
 
-    for (auto *p : llama_layer_weight) {
-        delete p;
+    for (const auto &layer : llama_layer_weight) {
+        // No need to explicitly delete since using smart pointers
     }
 }
 

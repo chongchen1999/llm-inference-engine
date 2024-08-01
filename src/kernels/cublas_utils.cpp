@@ -52,6 +52,16 @@ void CublasWrapper::gemm(
         ? static_cast<const void*>(&beta_half)
         : static_cast<const void*>(&beta);
 
+    /*printf("\n ok !!!\n");
+    printf("transa: %d\n", transa);
+    printf("transb: %d\n", transb);
+    printf("\nAlpha: %f, Beta: %f\n", alpha, beta);
+    printf("Alpha Pointer: %p, Beta Pointer: %p\n", alpha_ptr, beta_ptr);
+    printf("A: %p, B: %p, C: %p\n", A, B, C);
+    printf("m: %d, n: %d, k: %d\n", m, n, k);
+    printf("lda: %d, ldb: %d, ldc: %d\n", lda, ldb, ldc);
+    printf("Atype: %d, Btype: %d, Ctype: %d, ComputeType: %d\n", Atype_, Btype_, Ctype_, computeType_);*/
+
     CHECK_CUBLAS(
         cublasGemmEx(
             cublas_handle_,

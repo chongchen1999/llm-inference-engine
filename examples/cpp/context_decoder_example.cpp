@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     constexpr int head_num = 32;
     constexpr int kv_head_num = 32;
     constexpr int head_size = 128;
-    constexpr int inter_size = 11008;
+    constexpr int intermediate_size = 11008;
     constexpr int num_layers = 32;
     constexpr int max_seq_len = 64;
     constexpr float rmsnorm_eps = 1e-6;

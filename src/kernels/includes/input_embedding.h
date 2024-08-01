@@ -2,7 +2,7 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include "../../utils/tensor.h"
-#include "../../weights/llama/embedding_weights.h"
+#include "../../weights/includes/embedding_weights.h"
 
 template<typename T>
 void launchInputEmbedding(

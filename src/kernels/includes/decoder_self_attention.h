@@ -5,7 +5,7 @@
 #include <cuda_fp16.h>
 #include "../../utils/tensor.h"
 #include "../../models/llama/llama_params.h"
-#include "../../weights/base_weights.h"
+#include "../../weights/includes/base_weights.h"
 #include "../../utils/vectorize_utils.h"
 
 template <typename T>

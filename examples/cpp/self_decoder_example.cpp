@@ -13,7 +13,7 @@ int main() {
     const int head_num = 4;
     const int kv_head_num = 2;
     const int head_size = 8;
-    const int inter_size = 12;
+    const int intermediate_size = 12;
     const int num_layers = 32;
     const int max_seq_len = 12;
     const int hidden_units = (head_num + 2 * kv_head_num) * head_size;
@@ -140,19 +140,19 @@ int main() {
     }
 
     float *d_ffn_gate, *d_ffn_up, *d_ffn_down, *d_ffn_down_bias;
-    float *h_ffn_gate_up = static_cast<float *>(malloc(sizeof(float) * hidden_units * 2 * inter_size));
-    float *h_ffn_down = static_cast<float *>(malloc(sizeof(float) * hidden_units * inter_size));
+    float *h_ffn_gate_up = static_cast<float *>(malloc(sizeof(float) * hidden_units * 2 * intermediate_size));
+    float *h_ffn_down = static_cast<float *>(malloc(sizeof(float) * hidden_units * intermediate_size));
     float *h_ffn_down_bias = static_cast<float *>(malloc(sizeof(float) * hidden_units));
 
-    cudaMalloc(reinterpret_cast<void **>(&d_ffn_gate), sizeof(float) * hidden_units * 2 * inter_size);
-    cudaMalloc(reinterpret_cast<void **>(&d_ffn_down), sizeof(float) * hidden_units * inter_size);
+    cudaMalloc(reinterpret_cast<void **>(&d_ffn_gate), sizeof(float) * hidden_units * 2 * intermediate_size);
+    cudaMalloc(reinterpret_cast<void **>(&d_ffn_down), sizeof(float) * hidden_units * intermediate_size);
     cudaMalloc(reinterpret_cast<void **>(&d_ffn_down_bias), sizeof(float) * hidden_units);
 
-    for (int i = 0; i < hidden_units * 2 * inter_size; ++i) {
+    for (int i = 0; i < hidden_units * 2 * intermediate_size; ++i) {
         h_ffn_gate_up[i] = 2.0f;
     }
 
-    for (int i = 0; i < hidden_units * inter_size; ++i) {
+    for (int i = 0; i < hidden_units * intermediate_size; ++i) {
         h_ffn_down[i] = 2.0f;
         if (i < hidden_units) {
             h_ffn_down_bias[i] = 0.0f;
@@ -196,10 +196,10 @@ int main() {
     for (int i = 0; i < num_layers; ++i) {
         layer_weights.push_back(
             new LlamaLayerWeight<float>(
-                head_num, kv_head_num, head_size, inter_size, wtype, /*attn_bias*/ true
+                head_num, kv_head_num, head_size, intermediate_size, wtype, /*attention_bias*/ true
             )
         );
-        layer_weights.back()->loadWeights();
+        layer_weights.back()->loadWeightsFromFile();
     }
 
     auto decoder_input = new TensorWrapper<float>(
@@ -273,7 +273,7 @@ int main() {
         head_num, 
         kv_head_num, 
         head_size, 
-        inter_size, 
+        intermediate_size, 
         num_layers,
         attn_static_params, 
         rmsnorm_eps, 

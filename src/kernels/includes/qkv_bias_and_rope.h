@@ -5,7 +5,7 @@
 #include <cuda_fp16.h>
 #include "../../models/llama/llama_params.h"
 #include "../../utils/tensor.h"
-#include "../../weights/base_weights.h"
+#include "../../weights/includes/base_weights.h"
 #include "../../utils/vectorize_utils.h"
 
 // Applies bias to QKV tensors, performs transposition, and applies RoPE.

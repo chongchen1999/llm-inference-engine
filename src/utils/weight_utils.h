@@ -22,7 +22,7 @@ template <
 struct loadWeightFromBin {
     static void loadFromFileToDevice(
         OutputType *ptr,
-        const std::vector<size_t> *const shape,
-        const std::string * const filename
+        const std::vector<size_t> &shape,
+        const std::string &filename
     );
 };  // Template specialization (prototype)

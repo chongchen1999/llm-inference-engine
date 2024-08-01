@@ -153,7 +153,7 @@ void LlamaContextDecoder<T>::forward(
         launchRMSNorm(
             decoder_input->wrap<T>(), // in & out, [num tokens, q_hidden_units]
             decoder_residual, // RMSNorm input hidden states, used for next add residual
-            layerWeights->at(layer_id)->attn_norm_weight, // RMSNorm weights, [q_hidden_units]
+            layerWeights->at(layer_id)->attention_norm_weight, // RMSNorm weights, [q_hidden_units]
             rmsnorm_eps
         );
         DeviceSyncAndCheckCudaError();
@@ -161,7 +161,7 @@ void LlamaContextDecoder<T>::forward(
         context_attention->forward(
             context_attention_inputs,
             context_attention_outputs,
-            layerWeights->at(layer_id)->self_attn_weight,
+            layerWeights->at(layer_id)->self_attention_weight,
             dyn_params,
             context_attention->getAttentionStaticParams()
         );
@@ -169,7 +169,7 @@ void LlamaContextDecoder<T>::forward(
         launchFusedAddBiasResidualAndRMSNorm(
             decoder_residual, // [num tokens, hidden_units]
             decoder_output->wrap<T>(), // [num tokens, hidden_units]
-            layerWeights->at(layer_id)->self_attn_weight.output, // bias
+            layerWeights->at(layer_id)->self_attention_weight.output, // bias
             layerWeights->at(layer_id)->ffn_norm_weight.gamma,   // RMSNorm weights, [hidden_units]
             rmsnorm_eps
         );
