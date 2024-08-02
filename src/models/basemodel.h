@@ -3,10 +3,10 @@
 #include <string>
 #include <functional>
 #include <vector>
-#include "src/utils/tensor.h"
-#include "src/models/common_params.h"
-#include "src/memory/allocator/base_allocator.h"
-#include "src/kernels/includes/cublas_utils.h"
+#include "../utils/tensor.h"
+#include "common_params.h"
+#include "../memory/allocator/base_allocator.h"
+#include "../kernels/includes/cublas_utils.h"
 
 // Callback function for printing the generated content of each conversation round
 using CallBack = std::function<void(int , const char *)>;

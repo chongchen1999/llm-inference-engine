@@ -1,4 +1,4 @@
-#include "src/models/llama/llama.h"
+#include "llama.h"
 
 // ()note: we only support batch size = 1 now
 // ！！()note:
