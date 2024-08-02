@@ -32,7 +32,7 @@ LlamaWeight<T>::LlamaWeight(
                 intermediate_size,
                 weight_type,
                 attention_bias
-            ).get()
+            )
         );
     }
 
@@ -50,19 +50,19 @@ template<typename T>
 void LlamaWeight<T>::loadWeightsFromFile(const std::string &weight_path) {
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         out_rmsnorm_weight.gamma,
-        { static_cast<size_t>(hidden_units) },
+        { hidden_units },
         weight_path + "model.norm.weight.bin"
     );
 
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         post_decoder_embedding_weight.data,
-        { static_cast<size_t>(vocab_size), static_cast<size_t>(hidden_units) },
+        { vocab_size, hidden_units },
         weight_path + "lm_head.weight.bin"
     );
 
     loadWeightFromBin<T, float>::loadFromFileToDevice(
         pre_decoder_embedding_weight.data,
-        { static_cast<size_t>(vocab_size), static_cast<size_t>(hidden_units) },
+        { vocab_size, hidden_units },
         weight_path + "model.embed_tokens.weight.bin"
     );
 

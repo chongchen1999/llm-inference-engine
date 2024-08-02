@@ -14,3 +14,8 @@ add_executable(ffn_example ffn_example.cpp)
 set_property(TARGET ffn_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
 set_property(TARGET ffn_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(ffn_example PUBLIC -lcudart -lcudadevrt llama_ffn)
+
+add_executable(context_decoder_example context_decoder_example.cpp)
+set_property(TARGET context_decoder_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
+set_property(TARGET context_decoder_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
+target_link_libraries(context_decoder_example PUBLIC -lcudart -lcudadevrt llama_context_decoder)

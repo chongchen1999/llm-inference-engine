@@ -7,7 +7,7 @@
 #include <ctime>       // std::time
 
 #include "../../src/kernels/includes/qkv_bias_and_rope.h"
-#include "../../src/weights/llama/attention_weights.h"
+#include "../../src/weights/includes/attention_weights.h"
 #include "../../src/utils/macro.h"
 
 // CPU function for processing Q, K, V
@@ -55,7 +55,7 @@ void CPUfunc(
             // Process K
             for (int head = 0; head < kv_head_num; ++head) {
                 int base_offset_k = base_offset + (head + head_num) * head_size;
-                int base_offset_v = base_offset + (head + head_num + kv_head_num) * head_size;
+                // int base_offset_v = base_offset + (head + head_num + kv_head_num) * head_size;
 
                 for (int d = 0; d < head_size / 2; ++d) {
                     int transposed_offset = b * kvbatchstride + head * seq_len * head_size + s * head_size + d;

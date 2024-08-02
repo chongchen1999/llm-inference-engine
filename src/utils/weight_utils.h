@@ -19,10 +19,11 @@ template <
     typename FileType, 
     const bool enabled = std::is_same<OutputType, FileType>::value
 >
-struct loadWeightFromBin {
+class loadWeightFromBin {
+public:
     static void loadFromFileToDevice(
         OutputType *ptr,
-        const std::vector<size_t> &shape,
+        const std::vector<int> &shape,
         const std::string &filename
     );
 };  // Template specialization (prototype)

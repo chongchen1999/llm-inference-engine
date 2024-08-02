@@ -7,21 +7,6 @@
 
 #include "../../src/kernels/includes/rmsnorm.h"
 
-#define CHECK(call)                                   \
-do                                                    \
-{                                                     \
-    const cudaError_t error_code = call;              \
-    if (error_code != cudaSuccess)                    \
-    {                                                 \
-        std::cerr << "CUDA Error:\n"                  \
-                  << "    File: " << __FILE__ << "\n" \
-                  << "    Line: " << __LINE__ << "\n" \
-                  << "    Error code: " << error_code << "\n" \
-                  << "    Error text: " << cudaGetErrorString(error_code) << "\n"; \
-        std::exit(1);                                 \
-    }                                                 \
-} while (0)
-
 void CPUfusedresidandRMSNorm(float *h_decoder_out, float *h_weights, 
                              float eps, int hidden_units, int num_tokens) {
     for (int i = 0; i < num_tokens; ++i) {

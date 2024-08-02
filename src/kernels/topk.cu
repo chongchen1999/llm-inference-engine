@@ -29,7 +29,7 @@ __global__ void reduceTopK1(
     T *const topK_vals
 ) {
     const int tid = threadIdx.x;
-    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    // const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     const int row_id = blockIdx.x / blocks_per_beam;
     const int beam_lane = blockIdx.x % blocks_per_beam;
     const int cur_block_offset = beam_lane * block_size;
@@ -75,8 +75,8 @@ __global__ void reduceTopK2(
     T *final_topK_vals // [bs, beam_num, K]
 ) {
     const int tid = threadIdx.x;
-    const int gid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int row_id = blockIdx.x;
+    // const int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    // const int row_id = blockIdx.x;
     const int reduced_beam_size = blocks_per_beam * K;
 
     TopK<T, K> thread_topK;
@@ -114,13 +114,13 @@ void launchTopKForBeamSearch(
     const int bsxbm = probs->shape[0];
     const int vocab_size = probs->shape[1];
     const int blocks_per_beam = 8;
-    const int beam_num = 1;
+    // const int beam_num = 1;
     const int K = 5;
 
     // Buffer size
-    const int topK_val_buf_size = bsxbm * blocks_per_beam * K;
-    const int topK_ids_buf_size = bsxbm * blocks_per_beam * K;
-    const int final_topK_val_buf_size = bsxbm * K;
+    // const int topK_val_buf_size = bsxbm * blocks_per_beam * K;
+    // const int topK_ids_buf_size = bsxbm * blocks_per_beam * K;
+    // const int final_topK_val_buf_size = bsxbm * K;
 
     T *const topK_vals = topk_vals->data;
     int *const topK_ids = topk_ids->data;

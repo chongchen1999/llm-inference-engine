@@ -7,22 +7,6 @@
 
 #include "../../src/kernels/includes/add_residual.h"
 
-#define CHECK(call)                                           \
-do                                                            \
-{                                                             \
-    const cudaError_t error_code = call;                      \
-    if (error_code != cudaSuccess)                            \
-    {                                                         \
-        std::printf("CUDA Error:\n");                         \
-        std::printf("    File:       %s\n", __FILE__);       \
-        std::printf("    Line:       %d\n", __LINE__);       \
-        std::printf("    Error code: %d\n", error_code);     \
-        std::printf("    Error text: %s\n",                  \
-            cudaGetErrorString(error_code));                  \
-        std::exit(1);                                        \
-    }                                                         \
-} while (0)
-
 void CPUresidual(
     float *h_residual, 
     float *h_decoder_out,  

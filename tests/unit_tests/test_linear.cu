@@ -7,30 +7,43 @@
 #include <cstdio>
 #include <fstream>
 #include <ctime>
+#include <memory>      // std::unique_ptr
 
 #include "../../src/utils/macro.h"
 #include "../../src/kernels/includes/linear.h"
-#include "../../src/weights/base_weights.h"
+#include "../../src/weights/includes/base_weights.h"
 
-void CPUlinear(float *input, float *weight, float *output,
-               int MM, int KK, int NN) {
+// CPU linear operation function
+void CPUlinear(
+    float *input,
+    float *weight,
+    float *output,
+    int MM,
+    int KK,
+    int NN
+) {
     for (int i = 0; i < MM; ++i) {
         for (int k = 0; k < KK; ++k) {
             float temp = input[i * KK + k];
             for (int j = 0; j < NN; ++j) {
-                output[i * NN + j] +=  temp * weight[j * KK + k];
+                output[i * NN + j] += temp * weight[j * KK + k];
             }
         }
     }
 }
 
-bool checkResult(float *CPUoutput, float *GPUoutput, int output_size) {
+// Check results function
+bool checkResult(
+    float *CPUoutput,
+    float *GPUoutput,
+    int output_size
+) {
     for (int i = 0; i < output_size; ++i) {
         if (i < 5) {
             printf("%dth res, CPUoutput = %f, GPUoutput = %f\n", i, CPUoutput[i], GPUoutput[i]);
         }
         if (fabs(CPUoutput[i] - GPUoutput[i]) > 1e-3) {
-            printf("the %dth res is wrong, CPUoutput = %f, GPUoutput = %f\n", i, CPUoutput[i], GPUoutput[i]);
+            printf("The %dth result is wrong, CPUoutput = %f, GPUoutput = %f\n", i, CPUoutput[i], GPUoutput[i]);
             return false;
         }
     }
@@ -39,77 +52,85 @@ bool checkResult(float *CPUoutput, float *GPUoutput, int output_size) {
 
 int main(int argc, char *argv[]) {
     srand(233);
+
     const int seqlen = 64;
     const int hidden_units = 4096;
-    int hidden_units_2 = 0;
-    int output_size = 0;
+    int hidden_units_2 = hidden_units * hidden_units;
+    int output_size = seqlen * hidden_units;
 
-    hidden_units_2 = hidden_units * hidden_units;
-    output_size = seqlen * hidden_units;
-    
-    float *host_weights, *device_weights;
-    host_weights = (float *)malloc(sizeof(float) * hidden_units_2);
-    cudaMalloc((void **)&device_weights, sizeof(float) * hidden_units_2);
-    for (int i = 0; i < hidden_units_2; ++i) {
-        host_weights[i] = (float)(rand() % 3);  // pattern: 1, 2, 1, 2...
-    }
+    // Use smart pointers for CPU memory
+    auto host_weights = std::make_unique<float[]>(hidden_units_2);
+    auto host_input = std::make_unique<float[]>(seqlen * hidden_units);
+    auto host_output = std::make_unique<float[]>(output_size);
+    auto CPUout = std::make_unique<float[]>(output_size);
 
-    float *host_input = (float *)malloc(sizeof(float) * seqlen * hidden_units);
+    // Raw pointers for GPU memory
+    float *device_weights;
     float *device_input;
-    cudaMalloc((void **)&device_input, sizeof(float) * seqlen * hidden_units);
-    for (int i = 0; i < seqlen * hidden_units; ++i) {
-        host_input[i] = (float)(rand() % 3);
-    }
-
-    float *host_output = (float *)malloc(sizeof(float) * output_size);
     float *device_output;
+
+    cudaMalloc((void **)&device_weights, sizeof(float) * hidden_units_2);
+    cudaMalloc((void **)&device_input, sizeof(float) * seqlen * hidden_units);
     cudaMalloc((void **)&device_output, sizeof(float) * output_size);
 
-    CHECK(cudaMemcpy(device_input, host_input, sizeof(float) * hidden_units * seqlen, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(device_weights, host_weights, sizeof(float) * hidden_units_2, cudaMemcpyHostToDevice));
+    for (int i = 0; i < hidden_units_2; ++i) {
+        host_weights[i] = static_cast<float>(rand() % 3);  // Pattern: 1, 2, 1, 2...
+    }
+
+    for (int i = 0; i < seqlen * hidden_units; ++i) {
+        host_input[i] = static_cast<float>(rand() % 3);
+    }
+
+    ::memset(CPUout.get(), 0, sizeof(float) * output_size);
+
+    CHECK(cudaMemcpy(device_input, host_input.get(), sizeof(float) * seqlen * hidden_units, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(device_weights, host_weights.get(), sizeof(float) * hidden_units_2, cudaMemcpyHostToDevice));
 
     printf("ok");
 
     DataType type = getTensorType<float>();
     WeightType wtype = getWeightType<float>();
-    TensorWrapper<float> *in = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_input);
-    //print_mat(host_input, seqlen, hidden_units);
+
+    auto in = std::make_unique<TensorWrapper<float>>(Device::GPU, type, std::vector<int>{seqlen, hidden_units}, device_input);
     BaseWeight<float> weight;
     weight.shape = {hidden_units, hidden_units};
     weight.data = device_weights;
     weight.type = wtype;
 
-    TensorWrapper<float> *out;
-    out = new TensorWrapper<float>(Device::GPU, type, {seqlen, hidden_units}, device_output);
+    auto out = std::make_unique<TensorWrapper<float>>(Device::GPU, type, std::vector<int>{seqlen, hidden_units}, device_output);
 
     cublasHandle_t cublas_handle;
     cublasLtHandle_t cublaslt_handle;
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
-    CublasWrapper *cublas_wrapper = new CublasWrapper(cublas_handle, cublaslt_handle);
+
+    auto cublas_wrapper = std::make_unique<CublasWrapper>(cublas_handle, cublaslt_handle);
     cublas_wrapper->setFP32GemmConfig();
 
-    std::cout << "before launch kernel" << std::endl;
-    launchLinearGemm(in, &weight, out, cublas_wrapper, false, true);
-    std::cout << "after launch kernel" << std::endl;
+    std::cout << "Before launch kernel" << std::endl;
+    launchLinearGemm(in.get(), &weight, out.get(), cublas_wrapper.get(), false, true);
+    std::cout << "After launch kernel" << std::endl;
 
-    std::cout << "cuda memcpy device to host" << std::endl;
-    CHECK(cudaMemcpy(host_output, device_output, sizeof(float) * output_size, cudaMemcpyDeviceToHost));
+    std::cout << "CUDA memcpy device to host" << std::endl;
+    CHECK(cudaMemcpy(host_output.get(), device_output, sizeof(float) * output_size, cudaMemcpyDeviceToHost));
 
-    float *CPUout = (float *)malloc(sizeof(float) * output_size);
-    memset(CPUout, 0, sizeof(float) * output_size);
-    CPUlinear(host_input, host_weights, CPUout, seqlen, hidden_units, hidden_units);
+    CPUlinear(
+        host_input.get(),
+        host_weights.get(),
+        CPUout.get(),
+        seqlen,
+        hidden_units,
+        hidden_units
+    );
 
-    bool is_right = checkResult(CPUout, host_output, output_size);
+    bool is_right = checkResult(CPUout.get(), host_output.get(), output_size);
     if (is_right) {
-        std::cout << "linear passed" << std::endl;
+        std::cout << "Linear passed" << std::endl;
     }
-    free(host_input);
-    free(host_weights);
-    free(host_output);
-    free(CPUout);
+
     cudaFree(device_input);
     cudaFree(device_weights);
     cudaFree(device_output);
+
     return 0;
 }

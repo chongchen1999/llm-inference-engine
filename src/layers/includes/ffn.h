@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include "../../weights/llama/attention_weights.h"
-#include "../../weights/llama/ffn_weights.h"
+#include "../../weights/includes/attention_weights.h"
+#include "../../weights/includes/ffn_weights.h"
 #include "../../memory/allocator/cuda_allocator.h"
 #include "../../kernels/includes/linear.h"
 #include "../../utils/tensor.h"

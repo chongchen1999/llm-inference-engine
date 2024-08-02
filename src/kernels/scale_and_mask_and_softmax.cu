@@ -66,7 +66,7 @@ __global__ void fusedScaleMaskAndSoftmax_float(
     int k_len,
     float scale
 ) {
-    const int q_id = blockIdx.x;
+    // const int q_id = blockIdx.x;
     const int batch_id = blockIdx.y;
     const int head_id = blockIdx.z;
     const int tid = threadIdx.x;

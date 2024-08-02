@@ -52,54 +52,26 @@ void LlamaLayerWeight<T>::loadWeightsFromFile(
     const std::string &weight_path,
     WeightType weight_type
 ) {
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        attention_norm_weight.gamma,
-        std::vector<size_t>{ hidden_units },
-        weight_path + ".input_layernorm.weight.bin"
-    );
+    auto loadWeight = [&](const std::string &suffix, const std::vector<int> &shape, auto *ptr) {
+        loadWeightFromBin<T, float>::loadFromFileToDevice(
+            ptr,
+            shape,
+            weight_path + suffix
+        );
+    };
 
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        ffn_norm_weight.gamma,
-        std::vector<size_t>{ hidden_units },
-        weight_path + ".post_attention_layernorm.weight.bin"
-    );
+    // Load weights
+    loadWeight(".input_layernorm.weight.bin", { hidden_units }, attention_norm_weight.gamma);
+    loadWeight(".post_attention_layernorm.weight.bin", { hidden_units }, ffn_norm_weight.gamma);
+    loadWeight(".self_attn.qkv.weight.bin", { (head_num + 2 * kv_head_num) * head_size, hidden_units }, self_attention_weight.qkv.data);
+    loadWeight(".self_attn.o_proj.weight.bin", { hidden_units, hidden_units }, self_attention_weight.output.data);
+    loadWeight(".mlp.gate_up_proj.weight.bin", { 2 * intermediate_size, hidden_units }, ffn_weight.gate_and_up.data);
+    loadWeight(".mlp.down_proj.weight.bin", { hidden_units, intermediate_size }, ffn_weight.down.data);
 
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        self_attention_weight.qkv.data,
-        std::vector<size_t>{ (head_num + 2 * kv_head_num) * head_size, hidden_units },
-        weight_path + ".self_attn.qkv.weight.bin"
-    );
-
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        self_attention_weight.output.data,
-        std::vector<size_t>{ hidden_units, hidden_units },
-        weight_path + ".self_attn.o_proj.weight.bin"
-    );
-
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        ffn_weight.gate_and_up.data,
-        std::vector<size_t>{ 2 * intermediate_size, hidden_units },
-        weight_path + ".mlp.gate_up_proj.weight.bin"
-    );
-
-    loadWeightFromBin<T, float>::loadFromFileToDevice(
-        ffn_weight.down.data,
-        std::vector<size_t>{ hidden_units, intermediate_size },
-        weight_path + ".mlp.down_proj.weight.bin"
-    );
-
+    // Load biases if applicable
     if (attention_bias) {
-        loadWeightFromBin<T, float>::loadFromFileToDevice(
-            self_attention_weight.qkv.bias,
-            std::vector<size_t>{ (head_num + 2 * kv_head_num) * head_size },
-            weight_path + ".attention.wqkv.bias.bin"
-        );
-
-        loadWeightFromBin<T, float>::loadFromFileToDevice(
-            self_attention_weight.output.bias,
-            std::vector<size_t>{ hidden_units },
-            weight_path + ".attention.wo.bias.bin"
-        );
+        loadWeight(".attention.wqkv.bias.bin", { (head_num + 2 * kv_head_num) * head_size }, self_attention_weight.qkv.bias);
+        loadWeight(".attention.wo.bias.bin", { hidden_units }, self_attention_weight.output.bias);
     } else {
         self_attention_weight.qkv.bias = nullptr;
         self_attention_weight.output.bias = nullptr;

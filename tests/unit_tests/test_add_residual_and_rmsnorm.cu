@@ -8,20 +8,6 @@
 #include "../../src/kernels/includes/add_residual_and_rmsnorm.h"
 #include <stdio.h>
 
-#define CHECK(call)                                   \
-do {                                                  \
-    const cudaError_t error_code = call;              \
-    if (error_code != cudaSuccess) {                  \
-        printf("CUDA Error:\n");                      \
-        printf("    File:       %s\n", __FILE__);     \
-        printf("    Line:       %d\n", __LINE__);     \
-        printf("    Error code: %d\n", error_code);   \
-        printf("    Error text: %s\n",                \
-            cudaGetErrorString(error_code));          \
-        exit(1);                                      \
-    }                                                 \
-} while (0)
-
 template <typename T>
 void CPUFusedResidualAndRMSNorm(
     T *h_residual,
@@ -107,8 +93,8 @@ int main() {
         Device::GPU, type_float, {num_tokens, hidden_units}, d_residual
     );
     BaseWeight<float> norm;
-    LayerNormWeight<float> scale;
-    scale.gamma = d_scale;
+    /*LayerNormWeight<float> scale;
+    scale.gamma = d_scale;*/
 
     std::cout << "Before launch kernel" << std::endl;
     launchFusedAddBiasResidualAndRMSNorm(

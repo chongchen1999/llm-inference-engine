@@ -5,7 +5,7 @@
 #include <cuda_fp16.h>
 #include <fstream>
 #include "tensor.h"
-#include "../weights/base_weights.h"
+#include "../weights/includes/base_weights.h"
 #include "macro.h"
 
 // Note: Overloaded functions for saving intermediate output tensor to debug

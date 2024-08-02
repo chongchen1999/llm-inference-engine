@@ -123,7 +123,7 @@ public:
         const Device &device,
         const DataType &dtype,
         const std::vector<int> &shape,
-        T * const &data
+        T *const &data
     ) : Tensor(device, dtype, shape), data(data) {
         DataType in_dtype = getTensorType<T>();
         LLM_CHECK_WITH_INFO(
@@ -200,7 +200,7 @@ public:
         }
     }
 
-    TensorMap(const std::unordered_map<std::string, Tensor*> &tensor_map) {
+    TensorMap(const std::unordered_map<std::string, Tensor *> &tensor_map) {
         for (const auto &kv : tensor_map) {
             if (isValid(kv.second)) {
                 insert(kv.first, kv.second);

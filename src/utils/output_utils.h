@@ -1,32 +1,33 @@
 #pragma once
 
+#include <iostream>
 #include "tensor.h"
 #include <cstring>
 #include <vector>
-#include "../weights/base_weights.h"
+#include "../weights/includes/base_weights.h"
 
-void print_tensor(Tensor *tensor) {
-    printf("number of dimensions: %d\n", tensor->shape.size());
-    for (auto &dim : tensor->shape) {
-        printf("%d ", dim);
+void print_tensor(const Tensor *tensor) {
+    std::cout << "number of dimensions: " << tensor->shape.size() << std::endl;
+    for (const auto &dim : tensor->shape) {
+        std::cout << dim << " ";
     }
-    printf("\n");
+    std::cout << std::endl;
 }
 
 template <typename T>
-void print_tensor(TensorWrapper<T> *tensor) {
-    printf("number of dimensions: %d\n", tensor->shape.size());
-    for (auto &dim : tensor->shape) {
-        printf("%d ", dim);
+void print_tensor(const TensorWrapper<T> *tensor) {
+    std::cout << "number of dimensions: " << tensor->shape.size() << std::endl;
+    for (const auto &dim : tensor->shape) {
+        std::cout << dim << " ";
     }
-    printf("\n");
+    std::cout << std::endl;
 }
 
 template <typename T>
-void print_weight(BaseWeight<T> *weight) {
-    printf("number of dimensions: %d\n", weight->shape.size());
-    for (auto &dim : weight->shape) {
-        printf("%d ", dim);
+void print_weight(const BaseWeight<T> *weight) {
+    std::cout << "number of dimensions: " << weight->shape.size() << std::endl;
+    for (const auto &dim : weight->shape) {
+        std::cout << dim << " ";
     }
-    printf("\n");
+    std::cout << std::endl;
 }

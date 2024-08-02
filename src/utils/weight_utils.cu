@@ -17,10 +17,6 @@ __device__ __forceinline__ half typeCast(float val) {
 
 template<typename T>
 void GPUMalloc(T **ptr, size_t size) {
-    LLM_CHECK_WITH_INFO(
-        size >= static_cast<size_t>(0), 
-        "Ask cudaMalloc size " + std::to_string(size) + " < 0, which is invalid."
-    );
     CHECK(cudaMalloc(reinterpret_cast<void **>(ptr), sizeof(T) * size));
 }
 
@@ -66,41 +62,123 @@ void cudaTypeConversion(OutputType *dst, const InputType *src, int size) {
 template void cudaTypeConversion(float *dst, const half *src, int size);
 template void cudaTypeConversion(half *dst, const float *src, int size);
 
+#include <vector>
+#include <string>
+#include <fstream>
+#include <iostream>
+
 template<typename T>
 std::vector<T> loadWeightFromBinHelper(
-    const std::vector<size_t> *const shape, 
-    const std::string *const filename
+    const std::vector<size_t> &shape, 
+    const std::string &filename
 ) {
-    if (shape->size() > 2) {
-        std::printf("[ERROR] shape should have less than two dims\n");
+    // Check if shape has fewer than two dimensions
+    if (shape.size() > 2) {
+        std::cerr << "[ERROR] shape should have less than two dims\n";
         return std::vector<T>();
     }
 
-    size_t dim0 = (*shape)[0];
-    size_t dim1 = shape->size() == 2 ? (*shape)[1] : 1;
+    // Ensure shape is not empty
+    if (shape.empty()) {
+        std::cerr << "[ERROR] shape is empty\n";
+        return std::vector<T>();
+    }
+
+    size_t dim0 = shape[0];
+    size_t dim1 = shape.size() == 2 ? shape[1] : 1;
     size_t size = dim0 * dim1;
 
     if (size == 0) {
-        std::cout << "shape is zero, skip loading weight from file: " << *filename << std::endl;
+        std::cout << "Shape is zero, skipping loading weight from file: " << filename << std::endl;
         return std::vector<T>();
     }
 
     std::vector<T> host_array(size);
-    std::ifstream input_file(*filename, std::ios::in | std::ios::binary);
+    std::ifstream input_file(filename, std::ios::in | std::ios::binary);
 
     if (!input_file.is_open()) {
-        std::cout << "File " << *filename << " cannot open, loading model fails!" << std::endl;
+        std::cerr << "File " << filename << " cannot be opened, loading model fails!" << std::endl;
         return std::vector<T>();
     }
 
     size_t loaded_data_size = sizeof(T) * size;
     input_file.seekg(0, std::ios::end);
-    std::cout << "Read " << loaded_data_size << " bytes from " << *filename << std::endl;
+    std::streamsize file_size = input_file.tellg();
     input_file.seekg(0, std::ios::beg);
+
+    std::cout << "Expected to read " << loaded_data_size << " bytes from " << filename << std::endl;
+
+    if (file_size < loaded_data_size) {
+        std::cerr << "File " << filename << " is too small, expected " << loaded_data_size << " bytes but got " << file_size << " bytes" << std::endl;
+        return std::vector<T>();
+    }
+
     input_file.read(reinterpret_cast<char *>(host_array.data()), loaded_data_size);
 
-    size_t in_get_size = input_file.gcount();
-    if (in_get_size != loaded_data_size) {
+    if (!input_file) {
+        std::cerr << "Error reading from file " << filename << std::endl;
+        return std::vector<T>();
+    }
+
+    input_file.close();
+    return host_array;
+}
+
+#include <vector>
+#include <string>
+#include <fstream>
+#include <iostream>
+
+template<typename T>
+std::vector<T> loadWeightFromBinHelper(
+    const std::vector<int> &shape, 
+    const std::string &filename
+) {
+    // Check if shape has fewer than two dimensions
+    if (shape.size() > 2) {
+        std::cerr << "[ERROR] shape should have less than two dims\n";
+        return std::vector<T>();
+    }
+
+    // Ensure shape is not empty
+    if (shape.empty()) {
+        std::cerr << "[ERROR] shape is empty\n";
+        return std::vector<T>();
+    }
+
+    int dim0 = shape[0];
+    int dim1 = shape.size() == 2 ? shape[1] : 1;
+    int size = dim0 * dim1;
+
+    if (size <= 0) {
+        std::cout << "Shape is zero or negative, skipping loading weight from file: " << filename << std::endl;
+        return std::vector<T>();
+    }
+
+    std::vector<T> host_array(size);
+    std::ifstream input_file(filename, std::ios::in | std::ios::binary);
+
+    if (!input_file.is_open()) {
+        std::cerr << "File " << filename << " cannot be opened, loading model fails!" << std::endl;
+        return std::vector<T>();
+    }
+
+    std::streamsize loaded_data_size = sizeof(T) * size;
+    input_file.seekg(0, std::ios::end);
+    std::streamsize file_size = input_file.tellg();
+    input_file.seekg(0, std::ios::beg);
+
+    std::cout << "Expected to read " << loaded_data_size << " bytes from " << filename << std::endl;
+
+    if (file_size < loaded_data_size) {
+        std::cerr << "File " << filename << " is too small, expected " << loaded_data_size << " bytes but got " << file_size << " bytes" << std::endl;
+        return std::vector<T>();
+    }
+
+    input_file.read(reinterpret_cast<char *>(host_array.data()), loaded_data_size);
+
+    if (!input_file) {
+        std::cerr << "Error reading from file " << filename << std::endl;
         return std::vector<T>();
     }
 
@@ -109,27 +187,28 @@ std::vector<T> loadWeightFromBinHelper(
 }
 
 template <typename OutputType, typename FileType>
-struct loadWeightFromBin<OutputType, FileType, true> {
+class loadWeightFromBin<OutputType, FileType, true> {
+public:
     static void loadFromFileToDevice(
         OutputType *ptr, 
-        const std::vector<size_t> *const shape, 
-        const std::string *const filename
+        const std::vector<int> &shape, 
+        const std::string &filename
     ) {
         std::vector<FileType> host_array = loadWeightFromBinHelper<FileType>(shape, filename);
         if (host_array.empty()) {
             return;
         }
-
         cudaHostToDeviceCopy(ptr, host_array.data(), host_array.size());
     }
 };
 
 template <typename OutputType, typename FileType>
-struct loadWeightFromBin<OutputType, FileType, false> {
+class loadWeightFromBin<OutputType, FileType, false> {
+public:
     static void loadFromFileToDevice(
         OutputType *ptr, 
-        const std::vector<size_t> *const shape, 
-        const std::string *const filename
+        const std::vector<int> &shape, 
+        const std::string &filename
     ) {
         std::vector<FileType> host_array = loadWeightFromBinHelper<FileType>(shape, filename);
         if (host_array.empty()) {
@@ -144,7 +223,7 @@ struct loadWeightFromBin<OutputType, FileType, false> {
     }
 };
 
-template struct loadWeightFromBin<float, float, true>;
-template struct loadWeightFromBin<half, half, true>;
-template struct loadWeightFromBin<float, half, false>;
-template struct loadWeightFromBin<half, float, false>;
+template class loadWeightFromBin<float, float, true>;
+template class loadWeightFromBin<half, half, true>;
+template class loadWeightFromBin<float, half, false>;
+template class loadWeightFromBin<half, float, false>;

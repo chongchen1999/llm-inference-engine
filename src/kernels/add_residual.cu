@@ -56,7 +56,6 @@ void launchAddResidual(
 ) {
     const int batch_size = decoder_out->shape[0];
     const int hidden_units = decoder_out->shape[1];
-    const int vec_size = Vec<T>::size;
 
     const dim3 grid(batch_size);
     const dim3 block(256);

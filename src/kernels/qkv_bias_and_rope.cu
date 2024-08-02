@@ -1,5 +1,3 @@
-#pragma once
-
 #include <math.h>
 #include <stdio.h>
 #include "includes/qkv_bias_and_rope.h"
@@ -79,7 +77,7 @@ __global__ void fusedAddQKVBiasAndTransposeAndRope(
 
     // Apply RoPE
     const int cur_seq_history_len = history_length[batch_id];
-    const int context_length = cur_seq_history_len + input_length[batch_id];
+    // const int context_length = cur_seq_history_len + input_length[batch_id];
     const int timestep = cur_seq_history_len + local_token_id;
 
     if (tid >= rotary_embedding_dim / 2) {

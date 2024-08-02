@@ -6,7 +6,7 @@
 #include "src/kernels/includes/add_residual.h"
 #include "src/layers/includes/masked_self_attention.h"
 #include "src/layers/includes/ffn.h"
-#include "src/weights/llama/llama_weights.h"
+#include "src/weights/includes/llama_weights.h"
 #include "src/utils/tensor.h"
 
 // Layer weights are prepared in model_utils.h

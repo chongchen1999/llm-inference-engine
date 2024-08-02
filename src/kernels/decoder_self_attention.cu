@@ -84,8 +84,8 @@ __global__ void maskedMultiHeadAttention(
     const int q_hidden_units = head_num * head_size;
     const int kv_hidden_units = kv_head_num * head_size;
     const int head_stride = head_size;
-    const int q_offset = q_hidden_units_id * q_hidden_units + q_head_id * head_stride + tid;
-    const int kv_offset = kv_hidden_units_id * kv_hidden_units + kv_head_id * head_stride + tid;
+    // const int q_offset = q_hidden_units_id * q_hidden_units + q_head_id * head_stride + tid;
+    // const int kv_offset = kv_hidden_units_id * kv_hidden_units + kv_head_id * head_stride + tid;
 
     const int vec_size = Vec<T>::size;
     const int vec_q_offset = q_hidden_units_id * q_hidden_units + q_head_id * head_stride + tid * vec_size;

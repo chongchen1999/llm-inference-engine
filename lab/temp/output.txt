@@ -1,6 +1,0 @@
-
-                            Hey, are you conscious? Can you talk to me?
-{'input_ids': tensor([[    1, 29950,  1032, 29892,   526,   366, 19861, 29973,  1815,   366, 5193,   304,   592, 29973]], device='cuda:0'), 
-'attention_mask': tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]], device='cuda:0')}
-
-undefined reference to `void launchSampling<float>(TensorWrapper<int>*, TensorWrapper<float>*, TensorWrapper<int>*, TensorWrapper<bool>*, TensorWrapper<int>*, std::unordered_map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, int, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, int> > > const*)'
