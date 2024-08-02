@@ -1,24 +1,23 @@
 #include <iostream>
-#include "src/utils/macro.h"
-#include "src/layers/includes/self_decoder.h"
-
-// Note: In the layers folder, many operations have `DeviceSyncAndCheckCudaError();` added after them.
-// You may manually remove these or add conditional compilation code as shown in lesson30.
+#include "../utils/macro.h"
+#include "includes/self_decoder.h"
+#include <memory>  // Include for smart pointers
+#include <vector>
 
 template<typename T>
-void LlamaSelfDecoder<T>::allocateMemoryForForward(LLaMAAttentionDynParams *params) {
-    DataType type = getTensorType<T>(); 
+void LlamaSelfDecoder<T>::allocateMemory(LlamaAttentionDynamicParams *params) {
+    DataType type = getTensorType<T>();
     int batch_size = params->batch_size;
-    
-    decoder_residual = new TensorWrapper<T>(
-        Device::GPU, 
-        type, 
-        {batch_size, hidden_units}
+
+    decoder_residual = std::make_unique<TensorWrapper<T>>(
+        Device::GPU,
+        type,
+        std::vector<int>{batch_size, hidden_units}
     );
-    
+
     allocator->malloc(
-        decoder_residual->data, 
-        sizeof(T) * batch_size * hidden_units, 
+        &decoder_residual->data,
+        sizeof(T) * batch_size * hidden_units,
         false
     );
 }
@@ -30,44 +29,44 @@ void LlamaSelfDecoder<T>::freeBuf() {
 
 template<typename T>
 void LlamaSelfDecoder<T>::forward(
-    TensorMap *input_tensors, 
-    const std::vector<LlamaLayerWeight<T> *> *layerWeights, 
-    TensorMap *output_tensors, 
-    LLaMAAttentionDynParams *dyn_params
+    TensorMap *input_tensors,
+    std::vector<std::unique_ptr<LlamaLayerWeight<T>>> *const layerWeights,
+    TensorMap *output_tensors,
+    LlamaAttentionDynamicParams *dynamic_params
 ) {
-    allocateMemoryForForward(dyn_params);
+    allocateMemory(dynamic_params);
 
-    Tensor *decoder_input = (*input_tensors)["decoder_input"];
-    Tensor *step = (*input_tensors)["step"];
-    Tensor *finished = (*input_tensors)["finished"];
-    Tensor *decoder_output = (*output_tensors)["decoder_output"];
-    Tensor *all_k_cache = (*output_tensors)["all_k_cache"];
-    Tensor *all_v_cache = (*output_tensors)["all_v_cache"];
-    Tensor *layer_id = (*input_tensors)["layer_id"];
-    
+    Tensor *decoder_input = input_tensors->at("decoder_input");
+    Tensor *step = input_tensors->at("step");
+    Tensor *finished = input_tensors->at("finished");
+    Tensor *decoder_output = output_tensors->at("decoder_output");
+    Tensor *all_k_cache = output_tensors->at("all_k_cache");
+    Tensor *all_v_cache = output_tensors->at("all_v_cache");
+    Tensor *layer_id = input_tensors->at("layer_id");
+
     DataType type_int = getTensorType<int>();
 
     LLM_CHECK_WITH_INFO(
-        decoder_input->wrap<T>()->data != nullptr, 
+        decoder_input->wrap<T>()->data != nullptr,
         "The data pointer of tensor inserted into TensorMap is nullptr!"
     );
     LLM_CHECK_WITH_INFO(
-        step->wrap<int>()->data != nullptr, 
+        step->wrap<int>()->data != nullptr,
         "The data pointer of tensor inserted into TensorMap is nullptr!"
     );
     LLM_CHECK_WITH_INFO(
-        finished->wrap<bool>()->data != nullptr, 
+        finished->wrap<bool>()->data != nullptr,
         "The data pointer of tensor inserted into TensorMap is nullptr!"
     );
 
-    TensorMap self_attn_inputs{
+    TensorMap self_attention_inputs{
         {"attention_input", decoder_input},
         {"layer_id", layer_id},
         {"step", step},
         {"finished", finished}
     };
 
-    TensorMap self_attn_outputs{
+    TensorMap self_attention_outputs{
         {"attention_output", decoder_output},
         {"all_k_cache", all_k_cache},
         {"all_v_cache", all_v_cache}
@@ -75,38 +74,38 @@ void LlamaSelfDecoder<T>::forward(
 
     for (int layer_id = 0; layer_id < num_layer; ++layer_id) {
         if (layer_id > 0) {
-            TensorWrapper<int> *layer = new TensorWrapper<int>(
-                Device::CPU, 
-                type_int, 
-                {1}, 
+            auto layer = std::make_unique<TensorWrapper<int>>(
+                Device::CPU,
+                type_int,
+                std::vector<int>{1},
                 &layer_id
             );
-            self_attn_inputs["layer_id"] = layer;
+            self_attention_inputs.insert({"layer_id", layer.get()});
         }
 
-        decoder_input = self_attn_inputs["attention_input"];
-        
+        decoder_input = self_attention_inputs.at("attention_input");
+
         launchRMSNorm(
-            decoder_input->wrap<T>(), // in&out, [bs, q_hidden_units]
-            decoder_residual, // rmsnorm input hidden states, as input of next add residual
-            layerWeights->at(layer_id)->attention_norm_weight, // rmsnorm weights, [q_hidden_units]
+            decoder_input->wrap<T>(),  // in&out, [bs, q_hidden_units]
+            decoder_residual.get(),  // rmsnorm input hidden states, as input of next add residual
+            &layerWeights->at(layer_id)->attention_norm_weight,  // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );
 
         DeviceSyncAndCheckCudaError();
 
         self_attention->forward(
-            self_attn_inputs, 
-            self_attn_outputs, 
-            layerWeights->at(layer_id)->self_attention_weight, 
-            dyn_params
+            &self_attention_inputs,
+            &self_attention_outputs,
+            &layerWeights->at(layer_id)->self_attention_weight,
+            dynamic_params
         );
 
         launchFusedAddBiasResidualAndRMSNorm(
-            decoder_residual, // in residual from tensor before rmsnorm and return decoder_residual + decoder_output, [bs, q_hidden_units]
-            decoder_output->wrap<T>(), // in&out from attention output, [bs, q_hidden_units]
-            layerWeights->at(layer_id)->self_attention_weight.output, // bias
-            layerWeights->at(layer_id)->ffn_norm_weight.gamma, // rmsnorm weights, [q_hidden_units]
+            decoder_residual.get(),  // in residual from tensor before rmsnorm and return decoder_residual + decoder_output, [bs, q_hidden_units]
+            decoder_output->wrap<T>(),  // in&out from attention output, [bs, q_hidden_units]
+            &layerWeights->at(layer_id)->self_attention_weight.output,  // bias
+            layerWeights->at(layer_id)->ffn_norm_weight.gamma,  // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );
 
@@ -121,22 +120,22 @@ void LlamaSelfDecoder<T>::forward(
         };
 
         ffn->forward(
-            ffn_inputs, 
-            ffn_outputs, 
-            layerWeights->at(layer_id)->ffn_weight, 
-            dyn_params
+            &ffn_inputs,
+            &ffn_outputs,
+            &layerWeights->at(layer_id)->ffn_weight,
+            dynamic_params
         );
 
         launchAddResidual(
-            decoder_residual, // in, [bs, hidden_units]
-            decoder_output->as<T>(), // in&out, [bs, hidden_units]
+            decoder_residual.get(),  // in, [bs, hidden_units]
+            decoder_output->wrap<T>(),  // in&out, [bs, hidden_units]
             true
         );
         DeviceSyncAndCheckCudaError();
-        
-        self_attn_inputs["attention_input"] = decoder_output; // for next iteration
+
+        self_attention_inputs.insert({"attention_input", decoder_output});  // for next iteration
     }
-    
+
     // No intermediate buffer to free, so ignoring free call
 }
 

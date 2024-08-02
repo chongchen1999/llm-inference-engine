@@ -19,3 +19,8 @@ add_executable(context_decoder_example context_decoder_example.cpp)
 set_property(TARGET context_decoder_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
 set_property(TARGET context_decoder_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
 target_link_libraries(context_decoder_example PUBLIC -lcudart -lcudadevrt llama_context_decoder)
+
+add_executable(self_decoder_example self_decoder_example.cpp)
+set_property(TARGET self_decoder_example PROPERTY POSITION_INDEPENDENT_CODE  ON)
+set_property(TARGET self_decoder_example PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS  ON)
+target_link_libraries(self_decoder_example PUBLIC -lcudart -lcudadevrt llama_self_decoder)
