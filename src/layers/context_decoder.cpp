@@ -86,6 +86,7 @@ void LlamaContextDecoder<T>::forward(
 
     auto *seq_lens = input_tensors->at("input_length");
 
+    std::cout << "gain input!" << std::endl;
     // 1. Calculate padding offset
     launchCalPaddingOffset(
         padding_offset.get(),    // out
@@ -93,6 +94,7 @@ void LlamaContextDecoder<T>::forward(
         seq_lens->wrap<int>()    // in
     );
     DeviceSyncAndCheckCudaError();
+    std::cout << "gain padding offset!" << std::endl;
 
     // 2. Build causal mask
     auto *context_length = input_tensors->at("context_length");
@@ -102,6 +104,7 @@ void LlamaContextDecoder<T>::forward(
         context_length->wrap<int>()      // k, context lengths, [bs]
     );
     DeviceSyncAndCheckCudaError();
+    std::cout << "gain causal mask!" << std::endl;
 
     // 3. Context attention
     auto *history_length = input_tensors->at("history_length");
@@ -140,6 +143,8 @@ void LlamaContextDecoder<T>::forward(
         {"all_v_cache", all_v_cache}
     };
 
+    std::cout << "ready for context attention!" << std::endl;
+
     // Reuse the same buffer between layers
     for (int layer_id = 0; layer_id < num_layer; ++layer_id) {
         if (layer_id > 0) {
@@ -152,6 +157,8 @@ void LlamaContextDecoder<T>::forward(
 
         decoder_input = context_attention_inputs.at("attention_input");
 
+        std::cout << "prepared :" << layer_id << std::endl;
+
         launchRMSNorm(
             decoder_input->wrap<T>(), // in & out, [num tokens, q_hidden_units]
             decoder_residual.get(), // RMSNorm input hidden states, used for next add residual
@@ -159,6 +166,7 @@ void LlamaContextDecoder<T>::forward(
             rmsnorm_eps
         );
         DeviceSyncAndCheckCudaError();
+        std::cout << "gain rmsnorm!" << std::endl;
 
         context_attention->forward(
             &context_attention_inputs,
@@ -167,6 +175,7 @@ void LlamaContextDecoder<T>::forward(
             attention_dynamic_params,
             context_attention->getAttentionStaticParams()
         );
+        std::cout << "gain context attention!" << std::endl;
 
         launchFusedAddBiasResidualAndRMSNorm(
             decoder_residual.get(), // [num tokens, hidden_units]
@@ -176,6 +185,7 @@ void LlamaContextDecoder<T>::forward(
             rmsnorm_eps
         );
         DeviceSyncAndCheckCudaError();
+        std::cout << "gain add bias and rmsnorm!" << std::endl;
 
         #ifdef SAVE_DATA
         saveTensor(decoder_output->as<T>(), "ffn_input.bin", layer_id);
@@ -191,12 +201,14 @@ void LlamaContextDecoder<T>::forward(
         // Used to distinguish FFN in context decoder or self decoder, to reduce print info
         attention_dynamic_params->is_context = true;
 
+        std::cout << "--ready for ffn!" << std::endl;
         ffn->forward(
             &ffn_inputs, 
             &ffn_outputs, 
             &layer_weights->at(layer_id)->ffn_weight, 
             attention_dynamic_params
         );
+        std::cout << "gain ffn!" << std::endl;
 
         #ifdef SAVE_DATA
         saveTensor(decoder_output->as<T>(), "ffn_output.bin", layer_id);
@@ -207,6 +219,7 @@ void LlamaContextDecoder<T>::forward(
             decoder_output->wrap<T>()           // in & out, [num tokens, hidden_units]
         );
         DeviceSyncAndCheckCudaError();
+        // std::cout << "gain add residual!" << std::endl;
 
         context_attention_inputs.insert({"attention_input", decoder_output});
     }

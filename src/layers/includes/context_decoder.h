@@ -29,8 +29,8 @@ private:
     std::unique_ptr<TensorWrapper<T>> decoder_residual;
 
     cudaStream_t stream;
-    std::unique_ptr<CublasWrapper> cublas_wrapper;
-    std::unique_ptr<BaseAllocator> allocator;
+    std::shared_ptr<CublasWrapper> cublas_wrapper;
+    std::shared_ptr<BaseAllocator> allocator;
 
     std::unique_ptr<LlamaContextAttentionLayer<T>> context_attention;
     std::unique_ptr<LlamaFFNLayer<T>> ffn;
@@ -38,16 +38,16 @@ private:
 
 public:
     LlamaContextDecoder(
-        int head_num,
-        int kv_head_num,
-        int head_size,
-        int intermediate_size,
-        int num_layer,
-        LlamaAttentionStaticParams *const attention_static_params,
-        float rmsnorm_eps,
-        cudaStream_t stream,
-        std::unique_ptr<CublasWrapper> cublas_wrapper,
-        std::unique_ptr<BaseAllocator> allocator
+        const int &head_num,
+        const int &kv_head_num,
+        const int &head_size,
+        const int &intermediate_size,
+        const int &num_layer,
+        LlamaAttentionStaticParams *const &attention_static_params,
+        const float &rmsnorm_eps,
+        const cudaStream_t &stream,
+        const std::shared_ptr<CublasWrapper> &cublas_wrapper,
+        const std::shared_ptr<BaseAllocator> &allocator
     ) :
         head_num(head_num),
         kv_head_num(kv_head_num),
@@ -58,8 +58,8 @@ public:
         rmsnorm_eps(rmsnorm_eps),
         data_type(getTensorType<T>()),
         stream(stream),
-        cublas_wrapper(std::move(cublas_wrapper)),
-        allocator(std::move(allocator)) {
+        cublas_wrapper(cublas_wrapper),
+        allocator(allocator) {
         
         context_attention = std::make_unique<LlamaContextAttentionLayer<T>>(
             head_num,

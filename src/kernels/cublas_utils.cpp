@@ -6,7 +6,9 @@ CublasWrapper::CublasWrapper(
     cublasLtHandle_t cublaslt_handle
 ) :
     cublas_handle_(cublas_handle),
-    cublaslt_handle_(cublaslt_handle) {}
+    cublaslt_handle_(cublaslt_handle) {
+        setFP32GemmConfig();
+    }
 
 CublasWrapper::~CublasWrapper() {}
 
@@ -39,11 +41,14 @@ void CublasWrapper::gemm(
     float alpha = 1.0f,
     float beta = 0.0f
 ) {
+    // std::cout<< "get in gemm!" << std::endl;
+
     bool is_fp16_computeType = (computeType_ == CUDA_R_16F);
-    
+    // bool is_fp16_computeType = false;
+
     half alpha_half = static_cast<half>(alpha);
     half beta_half = static_cast<half>(beta);
-    
+
     const void *alpha_ptr = is_fp16_computeType
         ? static_cast<const void*>(&alpha_half)
         : static_cast<const void*>(&alpha);

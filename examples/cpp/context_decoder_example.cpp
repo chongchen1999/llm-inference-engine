@@ -18,8 +18,8 @@ int main(int argc, char **argv) {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto cublas_wrapper = std::make_unique<CublasWrapper>(cublas_handle, cublaslt_handle);
-    auto allocator = std::make_unique<CudaAllocator>();
+    auto cublas_wrapper = std::make_shared<CublasWrapper>(cublas_handle, cublaslt_handle);
+    auto allocator = std::make_shared<CudaAllocator>();
 
     constexpr int head_num = 8;
     constexpr int kv_head_num = 8;
@@ -252,9 +252,11 @@ int main(int argc, char **argv) {
         &attn_static_params,
         rmsnorm_eps,
         stream,
-        std::move(cublas_wrapper),
-        std::move(allocator)
+        cublas_wrapper,
+        allocator
     );
+
+    std::cout << "ready to forward" << std::endl;
 
     ctx_decoder->forward(
         &decoder_inputs, 

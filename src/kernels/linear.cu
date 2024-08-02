@@ -2,6 +2,7 @@
 #include <fstream>
 #include <algorithm>
 #include "includes/linear.h"
+#include "../utils/output_utils.h"
 
 /*
 All matrix multiplication cases:
@@ -28,6 +29,15 @@ void launchLinearGemm(
     bool trans_a,
     bool trans_b
 ) {
+    std::cout << "launchLinearGemm!" << std::endl << std::endl;
+
+    print_tensor<T>(input);
+    print_weight<T>(weight);
+    print_tensor<T>(output);
+
+    std::cout << "trans_a: " << trans_a << std::endl;
+    std::cout << "trans_b: " << trans_b << std::endl;
+
     int Am = input->shape[0];
     int An = input->shape[1];
     int Bm = weight->shape[0];
@@ -46,6 +56,8 @@ void launchLinearGemm(
         Cn = output->shape[1] * output->shape[2];
     }
 
+    std::cout << "ready for cublas0!" << std::endl;
+
     int opAm = Am;
     int opAn = An;
     int opBm = Bm;
@@ -56,12 +68,15 @@ void launchLinearGemm(
     if (trans_b) {
         std::swap(opBm, opBn);
     }
+
     int lda = opAn; //col-major + transpose
     int ldb = opBn; //col-major + transpose
-    int ldc = Cn; //col-major + transpose
+    int ldc = Cn; //col-major
 
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
+
+    std::cout << "ready for cublas!" << std::endl;
 
     cublas_wrapper->gemm(
         CUBLAS_OP_N,
@@ -96,41 +111,43 @@ void launchLinearStridedBatchGemm(
 ) {
     // B.T A.T = C.T
     // input1 and input2 shape: [bs, head_num, seqlen, head_size]
-    const int Am = input1->shape[2];
-    const int An = input1->shape[3];
-    const int Bm = input2->shape[2];
-    const int Bn = input2->shape[3];
-    const int Cm = output->shape[2];
-    const int Cn = output->shape[3];
+    int Am = input1->shape[2];
+    int An = input1->shape[3];
+    int Bm = input2->shape[2];
+    int Bn = input2->shape[3];
+    int Cm = output->shape[2];
+    int Cn = output->shape[3];
 
-    const int opAm = trans_a ? An : Am;
-    const int opAn = trans_a ? Am : An;
-    const int opBm = trans_b ? Bn : Bm;
-    const int opBn = trans_b ? Bm : Bn;
+    int opAm = Am;
+    int opAn = An;
+    int opBm = Bm;
+    int opBn = Bn;
+    if (trans_a) {
+        std::swap(opAm, opAn);
+    }
+    if (trans_b) {
+        std::swap(opBm, opBn);
+    }
+
+    int lda = opAn; //col-major + transpose
+    int ldb = opBn; //col-major + transpose
+    int ldc = Cn; //col-major
 
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
 
-    // We need to compute C = opA * opB, actually compute: CT = (opB)T * (opA)T
-    const int lda = opAn; // leading dim for (opA)T in col-major
-    const int ldb = opBn;
-    const int ldc = Cn;
-
-    const int64_t strideA = opAm * opAn;
-    const int64_t strideB = opBm * opBn;
-    const int64_t strideC = Cm * Cn;
+    long long int strideA = opAm * opAn;
+    long long int strideB = opBm * opBn;
+    long long int strideC = Cm * Cn;
 
     // TODO: check 4th dim of input = 3rd dim of weight
-    // TODO: check batchCount of two matrices is equal
-    const int batchCount = input1->shape[0] * input1->shape[1];
-
-    // Two transposes make no transpose
-    const auto transA = trans_a ? CUBLAS_OP_N : CUBLAS_OP_T;
-    const auto transB = trans_b ? CUBLAS_OP_N : CUBLAS_OP_T;
+    // TODO: check batch_count of two matrices is equal
+    int batch_count = input1->shape[0] * input1->shape[1];
+    LLM_CHECK_WITH_INFO(batch_count == input2->shape[0] * input2->shape[1], "dim 0 and dim 1 wrong!");
 
     cublas_wrapper->stridedBatchedGemm(
-        transA,
-        transB,
+        CUBLAS_OP_N,
+        CUBLAS_OP_N,
         Cn,           // m
         Cm,           // n
         opAn,         // k
@@ -143,7 +160,7 @@ void launchLinearStridedBatchGemm(
         output->data,
         ldc,
         strideC,
-        batchCount,
+        batch_count,
         1.0f,
         0.0f
     );

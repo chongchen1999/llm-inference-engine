@@ -139,13 +139,20 @@ void LlamaLayerWeight<T>::loadWeightsFromFile() {
     // Assign pointers
     attention_norm_weight.gamma = d_dummy_attn_norm_weight;
     ffn_norm_weight.gamma = d_dummy_ffn_norm_weight;
+
     self_attention_weight.qkv.data = d_dummy_qkv_weights;
     self_attention_weight.qkv.bias = nullptr;
+    self_attention_weight.qkv.is_transposed = true;
+
     self_attention_weight.output.data = d_dummy_output_weights;
     self_attention_weight.output.bias = d_dummy_output_bias;
+    self_attention_weight.output.is_transposed = false;
+
     ffn_weight.gate_and_up.data = d_dummy_ffn_gate_up;
     ffn_weight.down.data = d_dummy_ffn_down;
     ffn_weight.down.bias = d_dummy_ffn_down_bias;
+    ffn_weight.gate_and_up.is_transposed = true;
+    ffn_weight.down.is_transposed = true;
 }
 
 template<typename T>
