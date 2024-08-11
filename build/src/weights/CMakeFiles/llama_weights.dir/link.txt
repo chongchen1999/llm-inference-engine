@@ -1,3 +1,0 @@
-/usr/bin/ar qc libllama_weights.a CMakeFiles/llama_weights.dir/llama_weights.cpp.o
-/usr/bin/ar q libllama_weights.a CMakeFiles/llama_weights.dir/cmake_device_link.o
-/usr/bin/ranlib libllama_weights.a

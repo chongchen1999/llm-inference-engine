@@ -1,1 +1,0 @@
-/usr/bin/g++ CMakeFiles/test_add_residual_and_rmsnorm.dir/test_add_residual_and_rmsnorm.cu.o -o test_add_residual_and_rmsnorm  -lcudart -lcudadevrt ../../src/kernels/libadd_residual_and_rmsnorm.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"

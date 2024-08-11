@@ -1,3 +1,0 @@
-/usr/bin/ar qc libLlamaCtxAttn.a CMakeFiles/LlamaCtxAttn.dir/context_attention.cpp.o
-/usr/bin/ar q libLlamaCtxAttn.a CMakeFiles/LlamaCtxAttn.dir/cmake_device_link.o
-/usr/bin/ranlib libLlamaCtxAttn.a

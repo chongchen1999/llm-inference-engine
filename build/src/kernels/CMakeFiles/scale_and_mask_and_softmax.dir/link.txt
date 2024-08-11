@@ -1,3 +1,0 @@
-/usr/bin/ar qc libscale_and_mask_and_softmax.a CMakeFiles/scale_and_mask_and_softmax.dir/scale_and_mask_and_softmax.cu.o
-/usr/bin/ar q libscale_and_mask_and_softmax.a CMakeFiles/scale_and_mask_and_softmax.dir/cmake_device_link.o
-/usr/bin/ranlib libscale_and_mask_and_softmax.a

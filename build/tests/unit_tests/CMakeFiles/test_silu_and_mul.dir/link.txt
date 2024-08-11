@@ -1,1 +1,0 @@
-/usr/bin/g++ CMakeFiles/test_silu_and_mul.dir/test_silu_and_mul.cu.o -o test_silu_and_mul  -lcudart -lcudadevrt ../../src/kernels/libsilu_and_mul.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"

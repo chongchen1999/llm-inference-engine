@@ -1,3 +1,0 @@
-/usr/bin/ar qc libsilu_and_mul.a CMakeFiles/silu_and_mul.dir/silu_and_mul.cu.o
-/usr/bin/ar q libsilu_and_mul.a CMakeFiles/silu_and_mul.dir/cmake_device_link.o
-/usr/bin/ranlib libsilu_and_mul.a

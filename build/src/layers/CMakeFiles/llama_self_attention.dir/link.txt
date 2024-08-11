@@ -1,3 +1,0 @@
-/usr/bin/ar qc libllama_self_attention.a CMakeFiles/llama_self_attention.dir/self_attention.cpp.o
-/usr/bin/ar q libllama_self_attention.a CMakeFiles/llama_self_attention.dir/cmake_device_link.o
-/usr/bin/ranlib libllama_self_attention.a

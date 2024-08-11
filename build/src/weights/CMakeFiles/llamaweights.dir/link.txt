@@ -1,2 +1,0 @@
-/usr/bin/ar qc libllamaweights.a CMakeFiles/llamaweights.dir/llama_weights.cpp.o
-/usr/bin/ranlib libllamaweights.a

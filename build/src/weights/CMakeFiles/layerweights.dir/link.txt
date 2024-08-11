@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblayerweights.a CMakeFiles/layerweights.dir/layer_weights.cpp.o
-/usr/bin/ranlib liblayerweights.a

@@ -1,3 +1,0 @@
-/usr/bin/ar qc libtopk.a CMakeFiles/topk.dir/topk.cu.o
-/usr/bin/ar q libtopk.a CMakeFiles/topk.dir/cmake_device_link.o
-/usr/bin/ranlib libtopk.a

@@ -1,3 +1,0 @@
-/usr/bin/ar qc libllama_ffn.a CMakeFiles/llama_ffn.dir/ffn.cpp.o
-/usr/bin/ar q libllama_ffn.a CMakeFiles/llama_ffn.dir/cmake_device_link.o
-/usr/bin/ranlib libllama_ffn.a

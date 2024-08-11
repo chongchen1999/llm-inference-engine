@@ -1,3 +1,0 @@
-/usr/bin/ar qc libllama_self_decoder.a CMakeFiles/llama_self_decoder.dir/self_decoder.cpp.o
-/usr/bin/ar q libllama_self_decoder.a CMakeFiles/llama_self_decoder.dir/cmake_device_link.o
-/usr/bin/ranlib libllama_self_decoder.a

@@ -1,3 +1,0 @@
-/usr/bin/ar qc librepeat_kv.a CMakeFiles/repeat_kv.dir/repeat_kv.cu.o
-/usr/bin/ar q librepeat_kv.a CMakeFiles/repeat_kv.dir/cmake_device_link.o
-/usr/bin/ranlib librepeat_kv.a

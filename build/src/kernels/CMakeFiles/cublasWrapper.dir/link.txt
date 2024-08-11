@@ -1,3 +1,0 @@
-/usr/bin/ar qc libcublasWrapper.a CMakeFiles/cublasWrapper.dir/cublas_utils.cpp.o
-/usr/bin/ar q libcublasWrapper.a CMakeFiles/cublasWrapper.dir/cmake_device_link.o
-/usr/bin/ranlib libcublasWrapper.a

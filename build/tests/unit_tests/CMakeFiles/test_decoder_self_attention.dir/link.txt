@@ -1,1 +1,0 @@
-/usr/bin/g++ CMakeFiles/test_decoder_self_attention.dir/test_decoder_self_attention.cu.o -o test_decoder_self_attention  -lcudart -lcudadevrt ../../src/kernels/libdecoder_self_attention.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"

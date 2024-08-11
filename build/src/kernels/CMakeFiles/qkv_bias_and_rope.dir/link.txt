@@ -1,3 +1,0 @@
-/usr/bin/ar qc libqkv_bias_and_rope.a CMakeFiles/qkv_bias_and_rope.dir/qkv_bias_and_rope.cu.o
-/usr/bin/ar q libqkv_bias_and_rope.a CMakeFiles/qkv_bias_and_rope.dir/cmake_device_link.o
-/usr/bin/ranlib libqkv_bias_and_rope.a
