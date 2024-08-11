@@ -1,0 +1,3 @@
+/usr/bin/ar qc libsampling.a CMakeFiles/sampling.dir/sampling.cu.o
+/usr/bin/ar q libsampling.a CMakeFiles/sampling.dir/cmake_device_link.o
+/usr/bin/ranlib libsampling.a

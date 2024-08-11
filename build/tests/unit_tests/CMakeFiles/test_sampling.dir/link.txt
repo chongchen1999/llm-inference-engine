@@ -1,0 +1,1 @@
+/usr/bin/g++ CMakeFiles/test_sampling.dir/test_sampling.cu.o -o test_sampling  -lcudart -lcudadevrt ../../src/kernels/libsampling.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"

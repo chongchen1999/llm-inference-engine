@@ -1,0 +1,3 @@
+/usr/bin/ar qc libadd_residual.a CMakeFiles/add_residual.dir/add_residual.cu.o
+/usr/bin/ar q libadd_residual.a CMakeFiles/add_residual.dir/cmake_device_link.o
+/usr/bin/ranlib libadd_residual.a

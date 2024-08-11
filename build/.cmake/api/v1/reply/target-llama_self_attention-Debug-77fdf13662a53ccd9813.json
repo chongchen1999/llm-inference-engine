@@ -1,0 +1,138 @@
+{
+	"archive" : {},
+	"artifacts" : 
+	[
+		{
+			"path" : "src/layers/libllama_self_attention.a"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"src/layers/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 19,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 22,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-g -fPIC"
+				},
+				{
+					"fragment" : "-std=gnu++14"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 2,
+					"isSystem" : true,
+					"path" : "/usr/local/cuda-12.5/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "14"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 2,
+			"id" : "concat_past_kv::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "decoder_self_attention::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "qkv_bias_and_rope::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "repeat_kv::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "scale_and_mask_and_softmax::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "transpose_and_remove_padding::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "cublasWrapper::@2cfc8a98f657b2acf36d"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "linear::@2cfc8a98f657b2acf36d"
+		}
+	],
+	"id" : "llama_self_attention::@8e66fb9a743c76f8466b",
+	"name" : "llama_self_attention",
+	"nameOnDisk" : "libllama_self_attention.a",
+	"paths" : 
+	{
+		"build" : "src/layers",
+		"source" : "src/layers"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/layers/self_attention.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

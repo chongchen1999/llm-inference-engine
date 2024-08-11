@@ -1,0 +1,3 @@
+/usr/bin/ar qc libweight_utils.a CMakeFiles/weight_utils.dir/weight_utils.cu.o
+/usr/bin/ar q libweight_utils.a CMakeFiles/weight_utils.dir/cmake_device_link.o
+/usr/bin/ranlib libweight_utils.a

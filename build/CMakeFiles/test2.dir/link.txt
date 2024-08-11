@@ -1,0 +1,1 @@
+/usr/bin/g++ CMakeFiles/test2.dir/src/kernels/build_causal_mask.cu.o CMakeFiles/test2.dir/tests/unit_tests/test_build_causal_mask.cu.o -o test2  -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"

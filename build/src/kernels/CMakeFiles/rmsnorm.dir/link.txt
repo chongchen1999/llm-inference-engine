@@ -1,0 +1,3 @@
+/usr/bin/ar qc librmsnorm.a CMakeFiles/rmsnorm.dir/rmsnorm.cu.o
+/usr/bin/ar q librmsnorm.a CMakeFiles/rmsnorm.dir/cmake_device_link.o
+/usr/bin/ranlib librmsnorm.a

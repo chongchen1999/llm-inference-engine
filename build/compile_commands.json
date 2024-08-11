@@ -1,0 +1,232 @@
+[
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/weights",
+  "command": "/usr/bin/c++  -I/usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/layer_weights.dir/layer_weights.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/weights/layer_weights.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/weights/layer_weights.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/weights",
+  "command": "/usr/bin/c++  -I/usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_weights.dir/llama_weights.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/weights/llama_weights.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/weights/llama_weights.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/add_residual_and_rmsnorm.cu\" -o CMakeFiles/add_residual_and_rmsnorm.dir/add_residual_and_rmsnorm.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/add_residual_and_rmsnorm.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/add_residual.cu\" -o CMakeFiles/add_residual.dir/add_residual.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/add_residual.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/build_causal_mask.cu\" -o CMakeFiles/build_causal_mask.dir/build_causal_mask.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/build_causal_mask.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/cal_padding_offset.cu\" -o CMakeFiles/cal_padding_offset.dir/cal_padding_offset.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/cal_padding_offset.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/concat_past_kv.cu\" -o CMakeFiles/concat_past_kv.dir/concat_past_kv.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/concat_past_kv.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/decoder_self_attention.cu\" -o CMakeFiles/decoder_self_attention.dir/decoder_self_attention.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/decoder_self_attention.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/input_embedding.cu\" -o CMakeFiles/input_embedding.dir/input_embedding.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/input_embedding.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/qkv_bias_and_rope.cu\" -o CMakeFiles/qkv_bias_and_rope.dir/qkv_bias_and_rope.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/qkv_bias_and_rope.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/repeat_kv.cu\" -o CMakeFiles/repeat_kv.dir/repeat_kv.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/repeat_kv.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/rmsnorm.cu\" -o CMakeFiles/rmsnorm.dir/rmsnorm.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/rmsnorm.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/sampling.cu\" -o CMakeFiles/sampling.dir/sampling.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/sampling.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/scale_and_mask_and_softmax.cu\" -o CMakeFiles/scale_and_mask_and_softmax.dir/scale_and_mask_and_softmax.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/scale_and_mask_and_softmax.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/silu_and_mul.cu\" -o CMakeFiles/silu_and_mul.dir/silu_and_mul.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/silu_and_mul.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/topk.cu\" -o CMakeFiles/topk.dir/topk.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/topk.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/transpose_and_remove_padding.cu\" -o CMakeFiles/transpose_and_remove_padding.dir/transpose_and_remove_padding.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/transpose_and_remove_padding.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/cublasWrapper.dir/cublas_utils.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/cublas_utils.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/cublas_utils.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/kernels",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler  -isystem=/usr/local/cuda-12.5/include -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/linear.cu\" -o CMakeFiles/linear.dir/linear.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/kernels/linear.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/layers",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_context_attention.dir/context_attention.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/context_attention.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/context_attention.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/layers",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_self_attention.dir/self_attention.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/self_attention.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/self_attention.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/layers",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_ffn.dir/ffn.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/ffn.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/ffn.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/layers",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_context_decoder.dir/context_decoder.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/context_decoder.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/context_decoder.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/layers",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIC -std=gnu++14 -o CMakeFiles/llama_self_decoder.dir/self_decoder.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/self_decoder.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/layers/self_decoder.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/src/utils",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -Xcompiler=-fPIC -std=c++14 -x cu -dc \"/home/tourist/AI-HPC Projects/llm_inference_engine/src/utils/weight_utils.cu\" -o CMakeFiles/weight_utils.dir/weight_utils.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/src/utils/weight_utils.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_add_residual_and_rmsnorm.cu\" -o CMakeFiles/test_add_residual_and_rmsnorm.dir/test_add_residual_and_rmsnorm.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_add_residual_and_rmsnorm.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_add_residual.cu\" -o CMakeFiles/test_add_residual.dir/test_add_residual.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_add_residual.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_build_causal_mask.cu\" -o CMakeFiles/test_build_causal_mask.dir/test_build_causal_mask.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_build_causal_mask.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_cal_padding_offset.cu\" -o CMakeFiles/test_cal_padding_offset.dir/test_cal_padding_offset.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_cal_padding_offset.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_concat_past_kv.cu\" -o CMakeFiles/test_concat_past_kv.dir/test_concat_past_kv.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_concat_past_kv.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_decoder_self_attention.cu\" -o CMakeFiles/test_decoder_self_attention.dir/test_decoder_self_attention.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_decoder_self_attention.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_input_embedding.cu\" -o CMakeFiles/test_input_embedding.dir/test_input_embedding.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_input_embedding.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler  -isystem=/usr/local/cuda-12.5/include -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_linear.cu\" -o CMakeFiles/test_linear.dir/test_linear.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_linear.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_qkv_bias_and_rope.cu\" -o CMakeFiles/test_qkv_bias_and_rope.dir/test_qkv_bias_and_rope.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_qkv_bias_and_rope.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_repeat_kv.cu\" -o CMakeFiles/test_repeat_kv.dir/test_repeat_kv.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_repeat_kv.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_rmsnorm.cu\" -o CMakeFiles/test_rmsnorm.dir/test_rmsnorm.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_rmsnorm.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_sampling.cu\" -o CMakeFiles/test_sampling.dir/test_sampling.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_sampling.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_scale_and_mask_and_softmax.cu\" -o CMakeFiles/test_scale_and_mask_and_softmax.dir/test_scale_and_mask_and_softmax.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_scale_and_mask_and_softmax.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_silu_and_mul.cu\" -o CMakeFiles/test_silu_and_mul.dir/test_silu_and_mul.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_silu_and_mul.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_topk.cu\" -o CMakeFiles/test_topk.dir/test_topk.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_topk.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/tests/unit_tests",
+  "command": "/usr/local/cuda-12.5/bin/nvcc -forward-unknown-to-host-compiler   -g --generate-code=arch=compute_86,code=[compute_86,sm_86] -std=c++14 -x cu -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_transpose_and_remove_padding.cu\" -o CMakeFiles/test_transpose_and_remove_padding.dir/test_transpose_and_remove_padding.cu.o",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/tests/unit_tests/test_transpose_and_remove_padding.cu"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/examples/cpp",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIE -std=gnu++14 -o CMakeFiles/context_attention_example.dir/context_attention_example.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/context_attention_example.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/context_attention_example.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/examples/cpp",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIE -std=gnu++14 -o CMakeFiles/self_attention_example.dir/self_attention_example.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/self_attention_example.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/self_attention_example.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/examples/cpp",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIE -std=gnu++14 -o CMakeFiles/ffn_example.dir/ffn_example.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/ffn_example.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/ffn_example.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/examples/cpp",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIE -std=gnu++14 -o CMakeFiles/context_decoder_example.dir/context_decoder_example.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/context_decoder_example.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/context_decoder_example.cpp"
+},
+{
+  "directory": "/home/tourist/AI-HPC Projects/llm_inference_engine/build/examples/cpp",
+  "command": "/usr/bin/c++  -isystem /usr/local/cuda-12.5/include -g -fPIE -std=gnu++14 -o CMakeFiles/self_decoder_example.dir/self_decoder_example.cpp.o -c \"/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/self_decoder_example.cpp\"",
+  "file": "/home/tourist/AI-HPC Projects/llm_inference_engine/examples/cpp/self_decoder_example.cpp"
+}
+]

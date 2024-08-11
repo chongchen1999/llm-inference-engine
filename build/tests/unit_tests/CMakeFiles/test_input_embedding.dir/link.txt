@@ -1,0 +1,1 @@
+/usr/bin/g++ CMakeFiles/test_input_embedding.dir/test_input_embedding.cu.o -o test_input_embedding  -lcudart -lcudadevrt ../../src/kernels/libinput_embedding.a -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-12.5/targets/x86_64-linux/lib"
