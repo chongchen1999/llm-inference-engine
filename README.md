@@ -3,10 +3,10 @@
 This repository contains a high-performance LLM (Large Language Model) inference engine built using CUDA, specifically designed for efficient inference on local devices. The project showcases how to implement and optimize the inference of the Llama2 model with GPU acceleration, enhancing performance and responsiveness.
 
 ## Problems
-    **All the CUDA kernels have been verified to work correctly through unit tests.
-    This model can run one single transformer layer correctly.
-    When try to load all weights of 32 transformer layers, the memory is not enough, even with 7b model.
-    I will try some quantization method later.**
+    **All the CUDA kernels have been verified to work correctly through unit tests.**
+    **This model can run one single transformer layer correctly.**
+    **When try to load all weights of 32 transformer layers, the memory is not enough, even with 7b model.**
+    **I will try some quantization method later.**
 
 ## Features
 
