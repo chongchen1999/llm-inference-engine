@@ -4,19 +4,6 @@
 #include "includes/linear.cuh"
 #include "../utils/output_utils.h"
 
-/*
-All matrix multiplication cases:
-ctx qkv linear: [num_tokens, qhiddenunits] * [qhiddenunits, hiddenunits] = {num_tokens, qkv_head_num, head_size}
-ctx attn output linear: {num_tokens, head_num, head_size} * {qhiddenunits, qhiddenunits} = {num_tokens, qhiddenunits}
-self qkv linear: [bs, qhiddenunits] * [qhiddenunits, hiddenunits] = {bs, qkv_head_num, head_size}
-self attn output linear: [batch_size, qhiddenunits] * [qhiddenunits, qhiddenunits] = [bs, qhiddenunits]
-lmhead linear: [bs, qhiddenunits] * [vocab size, qhiddenunits], need transpose B
-gate: [bs/token nums, qhiddenunits] * [qhiddenunits, intersize] = [bs/token nums, intersize]
-up: [bs/token nums, qhiddenunits] * [qhiddenunits, intersize] = [bs/token nums, intersize]
-fusedGateUpGemm: [bs/token nums, qhiddenunits] * [qhiddenunits, 2 * intersize] = [bs/token nums, 2 * intersize]
-down: [bs/token nums, intersize] * [qhiddenunits, intersize] = [bs/token nums, qhiddenunits]
-*/
-
 // Note: cuBLAS is column-major.
 
 // Compute y = x * AT, since cuBLAS is col-major, we actually compute yT = A * xT
@@ -26,17 +13,16 @@ void launchLinearGemm(
     BaseWeight<T> *weight,
     TensorWrapper<T> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a,
-    bool trans_b
+    bool trans_a, bool trans_b
 ) {
-    std::cout << "launchLinearGemm!" << std::endl << std::endl;
+    /*std::cout << "launchLinearGemm!" << std::endl << std::endl;
 
     print_tensor<T>(input);
     print_weight<T>(weight);
     print_tensor<T>(output);
 
     std::cout << "trans_a: " << trans_a << std::endl;
-    std::cout << "trans_b: " << trans_b << std::endl;
+    std::cout << "trans_b: " << trans_b << std::endl;*/
 
     int Am = input->shape[0];
     int An = input->shape[1];
@@ -56,7 +42,7 @@ void launchLinearGemm(
         Cn = output->shape[1] * output->shape[2];
     }
 
-    std::cout << "ready for cublas0!" << std::endl;
+    // std::cout << "ready for cublas0!" << std::endl;
 
     int opAm = Am;
     int opAn = An;
@@ -76,7 +62,7 @@ void launchLinearGemm(
     LLM_CHECK_WITH_INFO(opAn == opBm, "2nd dim of weight MUST = 1st dim of input");
     LLM_CHECK_WITH_INFO(opAm == Cm && opBn == Cn, "output shape should be equal to weight shape");
 
-    std::cout << "ready for cublas!" << std::endl;
+    // std::cout << "ready for cublas!" << std::endl;
 
     cublas_wrapper->gemm(
         CUBLAS_OP_N,
@@ -94,10 +80,10 @@ void launchLinearGemm(
         0.0f
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(output->data);
-#else
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(output->data);
+    #else
+    #endif
 }
 
 template <typename T>
@@ -165,20 +151,18 @@ void launchLinearStridedBatchGemm(
         0.0f
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(output->data);
-#else
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(output->data);
+    #else
+    #endif
 }
 
-// Explicit template instantiation
 template void launchLinearGemm(
     TensorWrapper<float> *input,
     BaseWeight<float> *weight,
     TensorWrapper<float> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a,
-    bool trans_b
+    bool trans_a, bool trans_b
 );
 
 template void launchLinearGemm(
@@ -186,8 +170,7 @@ template void launchLinearGemm(
     BaseWeight<half> *weight,
     TensorWrapper<half> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a,
-    bool trans_b
+    bool trans_a, bool trans_b
 );
 
 template void launchLinearStridedBatchGemm(
@@ -195,8 +178,7 @@ template void launchLinearStridedBatchGemm(
     TensorWrapper<float> *input2,
     TensorWrapper<float> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a,
-    bool trans_b
+    bool trans_a, bool trans_b
 );
 
 template void launchLinearStridedBatchGemm(
@@ -204,6 +186,5 @@ template void launchLinearStridedBatchGemm(
     TensorWrapper<half> *input2,
     TensorWrapper<half> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a,
-    bool trans_b
+    bool trans_a, bool trans_b
 );

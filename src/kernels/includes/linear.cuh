@@ -16,8 +16,7 @@ void launchLinearGemm(
     BaseWeight<T> *weight, 
     TensorWrapper<T> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a = false, 
-    bool trans_b = false
+    bool trans_a = false, bool trans_b = false
 );
 
 template <typename T>
@@ -26,6 +25,5 @@ void launchLinearStridedBatchGemm(
     TensorWrapper<T> *input2,
     TensorWrapper<T> *output,
     CublasWrapper *cublas_wrapper,
-    bool trans_a = false, 
-    bool trans_b = false
+    bool trans_a = false, bool trans_b = false
 );

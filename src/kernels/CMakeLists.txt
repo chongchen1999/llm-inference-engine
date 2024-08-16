@@ -23,6 +23,7 @@ add_cuda_library(scale_and_mask_and_softmax scale_and_mask_and_softmax.cu)
 add_cuda_library(silu_and_mul silu_and_mul.cu)
 add_cuda_library(topk topk.cu)
 add_cuda_library(transpose_and_remove_padding transpose_and_remove_padding.cu)
+add_cuda_library(rope rope.cu)
 
 add_library(cublasWrapper STATIC cublas_utils.cpp)
 set_property(TARGET cublasWrapper PROPERTY POSITION_INDEPENDENT_CODE  ON)

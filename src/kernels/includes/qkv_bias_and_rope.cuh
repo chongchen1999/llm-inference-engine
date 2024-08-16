@@ -19,13 +19,5 @@ void launchFusedQKVAddBiasAndTransposeAndRope(
     TensorWrapper<int> *padding_offset,   // Padding offsets for token sequences
     TensorWrapper<int> *history_length,   // History length for each batch
     TensorWrapper<int> *input_length,     // Actual input length of each sequence
-    LlamaAttentionStaticParams *params    // Parameters for RoPE and other settings
-);
-
-// Applies RoPE (Rotary Positional Encoding) to the QKV buffer.
-template<typename T>
-void launchRope(
-    TensorWrapper<T> *qkv_buf,            // Input buffer containing QKV
-    TensorWrapper<int> *step,             // Current step in the sequence
-    LlamaAttentionStaticParams *static_params // Parameters for RoPE and other settings
+    LlamaAttentionStaticParams *static_params    // Parameters for RoPE and other settings
 );

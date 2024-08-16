@@ -31,6 +31,7 @@ target_link_libraries(
     repeat_kv
     scale_and_mask_and_softmax
     decoder_self_attention
+    rope
 )
 
 add_library(llama_ffn STATIC ffn.cpp)

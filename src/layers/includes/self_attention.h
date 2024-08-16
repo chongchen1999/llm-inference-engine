@@ -5,7 +5,7 @@
 #include "../../memory/allocator/cuda_allocator.h"
 #include "../../kernels/includes/linear.cuh"
 #include "../../kernels/includes/decoder_self_attention.cuh"
-#include "../../kernels/includes/qkv_bias_and_rope.cuh" // 2nd rope
+#include "../../kernels/includes/rope.cuh"
 #include "../../utils/tensor.h"
 #include "../../kernels/includes/cublas_utils.cuh"
 #include "../../models/llama/llama_params.h"
