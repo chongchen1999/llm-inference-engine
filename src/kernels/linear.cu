@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include "includes/linear.h"
+#include "includes/linear.cuh"
 #include "../utils/output_utils.h"
 
 /*

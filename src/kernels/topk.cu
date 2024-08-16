@@ -1,7 +1,7 @@
 #include <float.h> // FLT_MIN
 #include <cuda.h>
 #include <iostream>
-#include "includes/topk.h"
+#include "includes/topk.cuh"
 #include <cub/cub.cuh>
 
 // Note: a and b are two topK reductions outputting a single topK

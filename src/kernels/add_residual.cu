@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "includes/add_residual.h"
+#include "includes/add_residual.cuh"
 // #include "src/utils/cuda_debug_utils.cuh"
 
 // Note: This kernel is used at the end of FFN in every decoder layer
@@ -8,8 +8,8 @@ template <typename T>
 __global__ void addResidual(
     T *residual,
     T *decoder_out,
-    int num_tokens,
-    int hidden_units
+    const int num_tokens,
+    const int hidden_units
 ) {
     const int vec_size = Vec<T>::size;
     using Vec_t = typename Vec<T>::Type;
@@ -30,8 +30,8 @@ template <>
 __global__ void addResidual(
     half *residual,
     half *decoder_out,
-    int num_tokens,
-    int hidden_units
+    const int num_tokens,
+    const int hidden_units
 ) {
     const int vec_size = Vec<half>::size;
     using Vec_t = typename Vec<half>::Type;
@@ -67,12 +67,12 @@ void launchAddResidual(
         hidden_units
     );
 
-#ifdef PRINT_DATA
-    if (is_print)
-    {
-        print_data<<<1, 1>>>(decoder_out->data);
-    }
-#endif
+    #ifdef PRINT_DATA
+        if (is_print)
+        {
+            print_data<<<1, 1>>>(decoder_out->data);
+        }
+    #endif
 }
 
 template void launchAddResidual(

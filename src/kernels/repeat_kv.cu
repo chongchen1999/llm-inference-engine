@@ -1,4 +1,4 @@
-#include "includes/repeat_kv.h"
+#include "includes/repeat_kv.cuh"
 #include "../utils/cuda_debug_utils.cuh"
 #include <iostream>
 

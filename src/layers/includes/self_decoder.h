@@ -1,10 +1,10 @@
 #pragma once
 
 #include <memory>
-#include "../../kernels/includes/decoder_self_attention.h"
-#include "../../kernels/includes/add_residual_and_rmsnorm.h"
-#include "../../kernels/includes/rmsnorm.h"
-#include "../../kernels/includes/add_residual.h"
+#include "../../kernels/includes/decoder_self_attention.cuh"
+#include "../../kernels/includes/add_residual_and_rmsnorm.cuh"
+#include "../../kernels/includes/rmsnorm.cuh"
+#include "../../kernels/includes/add_residual.cuh"
 #include "../../layers/includes/self_attention.h"
 #include "../../layers/includes/ffn.h"
 #include "../../weights/includes/llama_weights.h"

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../../kernels/includes/build_causal_mask.h"
-#include "../../kernels/includes/cal_padding_offset.h"
-#include "../../kernels/includes/add_residual_and_rmsnorm.h"
-#include "../../kernels/includes/add_residual.h"
-#include "../../kernels/includes/rmsnorm.h"
+#include "../../kernels/includes/build_causal_mask.cuh"
+#include "../../kernels/includes/cal_padding_offset.cuh"
+#include "../../kernels/includes/add_residual_and_rmsnorm.cuh"
+#include "../../kernels/includes/add_residual.cuh"
+#include "../../kernels/includes/rmsnorm.cuh"
 #include "../../layers/includes/context_attention.h"
 #include "../../layers/includes/ffn.h"
 #include "../../weights/includes/llama_weights.h"

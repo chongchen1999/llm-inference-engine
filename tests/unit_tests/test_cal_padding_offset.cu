@@ -5,7 +5,7 @@
 #include <string>      // std::string
 #include <vector>      // std::vector
 
-#include "../../src/kernels/includes/cal_padding_offset.h"
+#include "../../src/kernels/includes/cal_padding_offset.cuh"
 
 // this kernel is only int type input and output, not fp32 or half
 // we compare the kernel correctnesss by eyes and result print infos

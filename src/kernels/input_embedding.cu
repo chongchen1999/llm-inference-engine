@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "includes/input_embedding.h"
+#include "includes/input_embedding.cuh"
 
 template<typename T>
 __global__ void embeddingFunctor(

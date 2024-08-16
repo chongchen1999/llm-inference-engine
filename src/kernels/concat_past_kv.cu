@@ -1,11 +1,16 @@
-#include "includes/concat_past_kv.h"
+#include "includes/concat_past_kv.cuh"
 // #include "src/utils/cuda_debug_utils.cuh"
 #include <iostream>
+
+/*
+    dim3 grid(batch_size, max_q_len, kv_head_num);
+    dim3 block(head_size);
+*/
 
 template <typename T>
 __global__ void appendKeyValueCache(
     T *kv_dst,                              // [num layers, bs, kv head num, max_seq_len, head_size]
-    const size_t layer_offset,
+    const int layer_offset,
     const T *kv_src,                        // [bs, kv_head_num, max_q_len, head_size]
     const int kv_head_num,
     const int head_size,
@@ -22,15 +27,15 @@ __global__ void appendKeyValueCache(
     T *kv_cache_dst = kv_dst + layer_offset;
 
     const int cur_seq_len = cur_query_length[batch_id];
-    const int cumsum_seq_len = history_length[batch_id];
+    const int history_seq_len = history_length[batch_id];
 
     if (token_id < cur_seq_len) {
-        const int src_offset = batch_id * kv_head_num * max_q_len * head_size +
-                               head_id * max_q_len * head_size +
-                               token_id * head_size + tid;
-        const int dst_offset = batch_id * kv_head_num * max_seq_len * head_size +
-                               head_id * max_seq_len * head_size +
-                               (cumsum_seq_len + token_id) * head_size + tid;
+        const int src_offset = 
+            batch_id * kv_head_num * max_q_len * head_size +
+            head_id * max_q_len * head_size + token_id * head_size + tid;
+        const int dst_offset = 
+            batch_id * kv_head_num * max_seq_len * head_size +
+            head_id * max_seq_len * head_size + (history_seq_len + token_id) * head_size + tid;
 
         kv_cache_dst[dst_offset] = kv_src[src_offset];
     }
@@ -83,7 +88,6 @@ void launchConcatKVCache(
     );
 }
 
-// Explicit template instantiation
 template void launchConcatKVCache(
     TensorWrapper<float> *k_src,
     TensorWrapper<float> *v_src,

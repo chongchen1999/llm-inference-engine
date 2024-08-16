@@ -1,6 +1,6 @@
 #include <math.h>
 #include <stdio.h>
-#include "includes/qkv_bias_and_rope.h"
+#include "includes/qkv_bias_and_rope.cuh"
 
 // Utility functions for RoPE (Rotary Positional Encoding)
 __device__ __forceinline__ float2 getRopeFreqCis(

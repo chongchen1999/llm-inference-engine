@@ -5,7 +5,7 @@
 #include <string>     // std::string
 #include <vector>     // std::vector
 
-#include "../../src/kernels/includes/repeat_kv.h"
+#include "../../src/kernels/includes/repeat_kv.cuh"
 
 // Note:
 // - There is no repeat KV CPU kernel implementation now.

@@ -10,7 +10,7 @@
 #include <memory>      // std::unique_ptr
 
 #include "../../src/utils/macro.h"
-#include "../../src/kernels/includes/linear.h"
+#include "../../src/kernels/includes/linear.cuh"
 #include "../../src/weights/includes/base_weights.h"
 
 // CPU linear operation function

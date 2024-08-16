@@ -1,4 +1,4 @@
-#include "includes/scale_and_mask_and_softmax.h"
+#include "includes/scale_and_mask_and_softmax.cuh"
 #include "../utils/tensor.h"
 #include "../utils/cuda_debug_utils.cuh"
 #include <float.h>
@@ -20,29 +20,29 @@ struct MaxOp {
     }
 };
 
-template <template <typename> class ReductionOp, typename T>
+template <template <typename> class Operator, typename T>
 __device__ __forceinline__ T warpReduce(T val) {
     #pragma unroll
     for (int mask = 16; mask > 0; mask >>= 1) {
-        val = ReductionOp<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
+        val = Operator<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
     }
     return val;
 }
 
-template <template <typename> class ReductionOp, typename T>
+template <template <typename> class Operator, typename T>
 __device__ T blockReduce(T val) {
     int tid = threadIdx.x;
     int warp_id = tid >> 5;
     int lane_id = tid & 31;
     int warp_nums = (blockDim.x + 31) >> 5;
     static __shared__ T warp[32]; // threads in a block must be less than 1024
-    val = warpReduce<ReductionOp, T>(val);
+    val = warpReduce<Operator, T>(val);
     if (lane_id == 0) {
         warp[warp_id] = val;
     }
     __syncthreads();
     T warp_val = tid < warp_nums ? warp[tid] : 0;
-    return warpReduce<ReductionOp, T>(warp_val);
+    return warpReduce<Operator, T>(warp_val);
 }
 
 /*

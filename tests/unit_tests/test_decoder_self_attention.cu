@@ -5,7 +5,7 @@
 #include <string>        // std::string
 #include <vector>        // std::vector
 
-#include "../../src/kernels/includes/decoder_self_attention.h"
+#include "../../src/kernels/includes/decoder_self_attention.cuh"
 #include "../../src/utils/macro.h"
 
 // Bug1: MUST add CHECK to cudaMemcpy to see if it works well

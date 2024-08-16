@@ -1,4 +1,4 @@
-#include "includes/cublas_utils.h"
+#include "includes/cublas_utils.cuh"
 #include <iostream>
 
 CublasWrapper::CublasWrapper(

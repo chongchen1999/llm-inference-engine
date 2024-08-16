@@ -6,7 +6,7 @@
 #include <vector>       // std::vector
 
 #include <cuda.h>
-#include "../../src/kernels/includes/topk.h"
+#include "../../src/kernels/includes/topk.cuh"
 #include "../../src/utils/tensor.h"
 
 // Note:

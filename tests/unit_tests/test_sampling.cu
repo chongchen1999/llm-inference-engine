@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../../src/kernels/includes/sampling.h"
+#include "../../src/kernels/includes/sampling.cuh"
 #include "../../src/utils/macro.h"
 
 // Note: There is no CPU implementation of this kernel

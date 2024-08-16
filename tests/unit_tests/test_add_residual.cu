@@ -5,7 +5,7 @@
 #include <string>       // std::string
 #include <vector>       // std::vector
 
-#include "../../src/kernels/includes/add_residual.h"
+#include "../../src/kernels/includes/add_residual.cuh"
 
 void CPUresidual(
     float *h_residual, 

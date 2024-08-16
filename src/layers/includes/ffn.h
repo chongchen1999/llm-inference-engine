@@ -4,11 +4,11 @@
 #include "../../weights/includes/attention_weights.h"
 #include "../../weights/includes/ffn_weights.h"
 #include "../../memory/allocator/cuda_allocator.h"
-#include "../../kernels/includes/linear.h"
+#include "../../kernels/includes/linear.cuh"
 #include "../../utils/tensor.h"
-#include "../../kernels/includes/cublas_utils.h"
+#include "../../kernels/includes/cublas_utils.cuh"
 #include "../../models/llama/llama_params.h"
-#include "../../kernels/includes/silu_and_mul.h"
+#include "../../kernels/includes/silu_and_mul.cuh"
 #include "../../utils/macro.h"
 
 template<typename T>

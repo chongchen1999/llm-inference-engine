@@ -3,20 +3,14 @@
 #include <math.h>
 #include <cstdio>
 #include "../utils/cuda_debug_utils.cuh"
-#include "includes/decoder_self_attention.h"
-
-// kv cache shape = [numlayers, bs, kv head num, max_seq_len, head size]
-// bug1: scale's dtype must be float, not int
-// bug2: mha_kernel_params struct's pointer is on CPU, not GPU, which causes we don't run the CUDA kernel, so add cudacheck is a must!
-// bug3: blockreduce res should use tid=0 to write into smem
-// bug4: GQA, kv_head_num brd to head_num, we can automatically do this by head id index like lmdeploy
-// half or float version: the logits and mha output both are fp32 type, q k v are all accessed vectorizedly
+#include "includes/decoder_self_attention.cuh"
 
 template <typename T>
 struct SumOp {
     __device__ __forceinline__ T operator()(const T &a, const T &b) const {
         return a + b;
     }
+    static const T identity = static_cast<T>(0);
 };
 
 template <typename T>
@@ -24,31 +18,35 @@ struct MaxOp {
     __device__ __forceinline__ T operator()(const T &a, const T &b) const {
         return a > b ? a : b;
     }
+    static const T identity = static_cast<T>(-1e9);
 };
 
-template <template <typename> class ReductionOp, typename T>
-__device__ __forceinline__ T warpReduce(T val) {
+template <template <typename> class Operator, typename T>
+__device__ __forceinline__ void warpReduce(T &val) {
     #pragma unroll
-    for (int mask = 16; mask > 0; mask >>= 1) {
-        val = ReductionOp<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        val = Operator<T>()(val, __shfl_xor_sync(0xffffffff, val, offset));
     }
-    return val;
 }
 
-template <template <typename> class ReductionOp, typename T>
-__device__ T blockReduce(T val) {
+template <template <typename> class Operator, typename T>
+__device__ void blockReduce(T &val) {
     const int tid = threadIdx.x;
     const int warp_id = tid >> 5;
     const int lane_id = tid & 31;
     const int warp_nums = (blockDim.x + 31) >> 5;
-    static __shared__ T warp[32]; // threads in a block must be less than 1024
-    val = warpReduce<ReductionOp, T>(val);
+    __shared__ T warp[32]; // threads in a block must be less than 1024
+
+    warpReduce<Operator, T>(val);
     if (lane_id == 0) {
         warp[warp_id] = val;
     }
     __syncthreads();
-    const T warp_val = tid < warp_nums ? warp[tid] : 0;
-    return warpReduce<ReductionOp, T>(warp_val);
+
+    if (warp_id == 0) {
+        val = lane_id < warp_nums ? warp[lane_id] : Operator<T>::identity;
+        warpReduce<Operator, T>(val);
+    }
 }
 
 /*
@@ -57,13 +55,13 @@ __device__ T blockReduce(T val) {
 */
 template <typename T>
 __global__ void maskedMultiHeadAttention(
-    T *const q, // [bs, head_num, 1, head_size] or [bs, head_num, head_size]
-    T *const k, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
-    T *const v, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
-    const T *const qkv_bias, // bias, [qkv_head_num * head_size] aka [qkv_hidden_units]
-    T *const k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
-    T *const v_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
-    T *const mha_output, // [batch_size, num_heads, head_size]
+    T *q, // [bs, head_num, 1, head_size] or [bs, head_num, head_size]
+    T *k, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
+    T *v, // [bs, kv_head_num, 1, head_size] or [bs, kv_head_num, head_size]
+    const T *qkv_bias, // bias, [qkv_head_num * head_size] aka [qkv_hidden_units]
+    T *k_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
+    T *v_cache, // [layer_num, batch_size, kv_num_heads, max_seq_len, head_size]
+    T *mha_output, // [batch_size, num_heads, head_size]
     const int batch_size, 
     const int head_num, 
     const int kv_head_num,
@@ -101,9 +99,9 @@ __global__ void maskedMultiHeadAttention(
     using Vec_t = typename Vec<T>::Type;
 
     extern __shared__ char shared_qk[]; //head_size * sizeof(T) + cur_step * sizeof(float);
-    T *const shared_q = reinterpret_cast<T *>(shared_qk);
-    float *const logits = reinterpret_cast<float *>(shared_q + head_size);
-    Vec_t *const vec_shared_q = reinterpret_cast<Vec_t *>(shared_q);
+    T *shared_q = reinterpret_cast<T *>(shared_qk);
+    float *logits = reinterpret_cast<float *>(shared_q + head_size);
+    Vec_t *vec_shared_q = reinterpret_cast<Vec_t *>(shared_q);
 
     Vec_t &vec_q = *reinterpret_cast<Vec_t *>(q + vec_q_offset);
     Vec_t &vec_k = *reinterpret_cast<Vec_t *>(k + vec_kv_offset);
@@ -137,23 +135,25 @@ __global__ void maskedMultiHeadAttention(
         }
         
         T qk_acc = vec_qkT.x + vec_qkT.y + vec_qkT.z + vec_qkT.w;
-        T attention_score = blockReduce<SumOp, T>(qk_acc);
+        blockReduce<SumOp, T>(qk_acc);
         if (tid == 0) {
-            logits[kv_id] = attention_score;
+            logits[kv_id] = qk_acc;
         }
         __syncthreads();
     }
 
-    const T local_logit = tid < step ? static_cast<T>(logits[tid]) : 0;
+    const T local_logit = tid < step ? static_cast<T>(logits[tid]) : static_cast<T>(0);
     __shared__ float row_max, sum_exp;
-    const T block_max = blockReduce<MaxOp, T>(local_logit);
+    T block_max = local_logit;
+    blockReduce<MaxOp, T>(block_max);
     if (tid == 0) {
         row_max = block_max;
     }
     __syncthreads();
 
-    const T cur_exp = tid < step ? expf(local_logit - row_max) : 0;
-    const T block_sum_exp = blockReduce<SumOp, T>(cur_exp);
+    const T cur_exp = tid < step ? expf(local_logit - row_max) : static_cast<T>(0);
+    T block_sum_exp = cur_exp;
+    blockReduce<SumOp, T>(block_sum_exp);
     if (tid == 0) {
         sum_exp = block_sum_exp + 1e-6f;
     }
@@ -165,9 +165,9 @@ __global__ void maskedMultiHeadAttention(
     __syncthreads();
 
     if (tid * vec_size < head_size) {
-        if (!blockIdx.x && !threadIdx.x) {
+        /*if (!blockIdx.x && !threadIdx.x) {
             printf("got into mha_output STEP 0!\n");
-        }
+        }*/
         Vec_t vec_attention_score = vec_zero;
         *reinterpret_cast<Vec_t *>(v_cache + (step - 1) * step_stride + cache_offset) = vec_v;
 
@@ -189,13 +189,13 @@ __global__ void maskedMultiHeadAttention(
 
 template <>
 __global__ void maskedMultiHeadAttention(
-    half *const q, 
-    half *const k, 
-    half *const v, 
-    const half *const qkv_bias, 
-    half *const k_cache, 
-    half *const v_cache, 
-    half *const mha_output,
+    half *q, 
+    half *k, 
+    half *v, 
+    const half *qkv_bias, 
+    half *k_cache, 
+    half *v_cache, 
+    half *mha_output,
     const int batch_size, 
     const int head_num, 
     const int kv_head_num,
@@ -220,7 +220,7 @@ void launchDecoderMaskedMultiHeadAttention(
     TensorWrapper<T> *mha_output, // [batch_size, num_heads, head_size] or [bs, q_hidden_units]
     LlamaAttentionStaticParams *static_params
 ) {
-    printf("get in decoder self attention!\n");
+    // printf("get in decoder self attention!\n");
     const int batch_size = qkv_buf->shape[0];
     const int qkv_head_num = qkv_buf->shape[1];
     const int head_size = qkv_buf->shape[2];
@@ -245,7 +245,7 @@ void launchDecoderMaskedMultiHeadAttention(
     dim3 grid(head_num * batch_size);
     dim3 block(head_size);
 
-    printf("ready to get into fused kernel!\n");
+    // printf("ready to get into fused kernel!\n");
     maskedMultiHeadAttention<T><<<grid, block, smem_size_bytes>>>(
         q, 
         k, 
@@ -263,10 +263,10 @@ void launchDecoderMaskedMultiHeadAttention(
         rotary_embedding_dim,
         rotary_embedding_base
     );
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(mha_output->data, true);
-#else
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(mha_output->data, true);
+    #else
+    #endif
 }
 
 template void launchDecoderMaskedMultiHeadAttention(

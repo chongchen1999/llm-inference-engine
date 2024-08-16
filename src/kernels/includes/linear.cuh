@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <fstream>
-#include "cublas_utils.h"
+#include "cublas_utils.cuh"
 #include "../../utils/tensor.h"
 #include "../../weights/includes/base_weights.h"
 #include "../../utils/macro.h"

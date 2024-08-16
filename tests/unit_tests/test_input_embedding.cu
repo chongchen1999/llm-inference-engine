@@ -8,7 +8,7 @@
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include <cuda_runtime.h>
-#include "../../src/kernels/includes/input_embedding.h"
+#include "../../src/kernels/includes/input_embedding.cuh"
 
 
 // CPU implementation of embedding

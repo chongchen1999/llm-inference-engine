@@ -1,4 +1,4 @@
-#include "includes/cal_padding_offset.h"
+#include "includes/cal_padding_offset.cuh"
 
 // Shape:
 // - seq_lengths: [batch size]

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "../utils/cuda_debug_utils.cuh"
-#include "includes/transpose_and_remove_padding.h"
+#include "includes/transpose_and_remove_padding.cuh"
 
 /* 
     [bs, head nums, seqlen, head size] => 

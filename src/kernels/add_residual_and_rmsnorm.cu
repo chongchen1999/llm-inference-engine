@@ -1,40 +1,37 @@
 #include <stdio.h>
 #include "../utils/cuda_debug_utils.cuh"
-#include "includes/add_residual_and_rmsnorm.h"
+#include "includes/add_residual_and_rmsnorm.cuh"
 
-// Bugs:
-// 1. `warpReduceSum` returns 0 if `blockDim.x < 32`, because `blockDim.x / 32 = 0`
-// 2. Output buffer values are the same as before the call; output address not updated correctly
-// 3. First 32 values in the output buffer are correct, but the rest are wrong; incorrect row stride handling
-// 4. Residual not updated correctly; new residual should be `input + residual`
+
 
 template <typename T>
-__device__ __forceinline__ T warpReduceSum(T val) {
+__device__ __forceinline__ void warpReduceSum(T &val) {
     #pragma unroll
     for (int i = 16; i > 0; i >>= 1) {
         val += __shfl_xor_sync(0xffffffff, val, i);
     }
-    return val;
 }
 
 // Note: When block size < 32, using `blockDim.x / 32` to get warp numbers is incorrect; use `ceil` instead
 template <typename T>
-__device__ T blockReduceSum(T val) {
+__device__ void blockReduceSum(T &val) {
     const int tid = threadIdx.x;
     const int warp_id = tid >> 5;
     const int lane_id = tid & 31;
-    int warp_num = (blockDim.x + 31) >> 5;
-    static __shared__ T warpsum[32]; // threads <= 1024
+    const int warp_num = (blockDim.x + 31) >> 5;
 
-    val = warpReduceSum<T>(val);
+    __shared__ T warp_sum[32]; // threads <= 1024
+    warpReduceSum<T>(val);
+
     if (lane_id == 0) {
-        warpsum[warp_id] = val;
+        warp_sum[warp_id] = val;
     }
     __syncthreads();
 
-    T sum = (tid < warp_num) ? warpsum[tid] : static_cast<T>(0);
-    sum = warpReduceSum<T>(sum); // No need for shfl sync here
-    return sum;
+    if (warp_id == 0) {
+        val = (lane_id < warp_num) ? warp_sum[lane_id] : static_cast<T>(0);
+        warpReduceSum<T>(val);
+    }
 }
 
 /*
@@ -65,7 +62,7 @@ __global__ void fusedAddBiasResidualAndRMSNorm(
 
     Vec_t *vec_decoder_out = reinterpret_cast<Vec_t *>(decoder_out + token_id * hidden_units); // Note the offset
 
-    T thread_accm = static_cast<T>(0);
+    T block_sum = static_cast<T>(0);
 
     #pragma unroll
     for (int i = tid; i < vec_hidden_units; i += blockDim.x) {
@@ -94,15 +91,15 @@ __global__ void fusedAddBiasResidualAndRMSNorm(
             cur_vec_decoder_out.w += cur_vec_bias.w;
         }
 
-        thread_accm += cur_vec_decoder_out.x * cur_vec_decoder_out.x;
-        thread_accm += cur_vec_decoder_out.y * cur_vec_decoder_out.y;
-        thread_accm += cur_vec_decoder_out.z * cur_vec_decoder_out.z;
-        thread_accm += cur_vec_decoder_out.w * cur_vec_decoder_out.w;
+        block_sum += cur_vec_decoder_out.x * cur_vec_decoder_out.x;
+        block_sum += cur_vec_decoder_out.y * cur_vec_decoder_out.y;
+        block_sum += cur_vec_decoder_out.z * cur_vec_decoder_out.z;
+        block_sum += cur_vec_decoder_out.w * cur_vec_decoder_out.w;
     }
 
     // Sum of squares
-    T block_sum = blockReduceSum<T>(thread_accm);
-    __shared__ float inv_rms;
+    blockReduceSum<T>(block_sum);
+    __shared__ T inv_rms;
 
     if (tid == 0) {
         inv_rms = rsqrt(block_sum / hidden_units + eps);
@@ -143,16 +140,16 @@ __global__ void fusedAddBiasResidualAndRMSNorm(
     Vec_t *vec_scale = (scale != nullptr) ? reinterpret_cast<Vec_t *>(const_cast<half *>(scale)) : nullptr;
 
     Vec_t vec_decoder_out, tmp;
-    float thread_accm = 0.0f;
+    float block_sum = 0.0f;
 
     for (int i = tid; i < hidden_units / vec_size; i += blockDim.x) {
         vec_decoder_out = reinterpret_cast<Vec_t *>(decoder_out)[batch_id * hidden_units / vec_size + i];
         tmp = __hadd2(__hadd2(vec_decoder_out, vec_residual[i]), vec_bias[i]);
-        thread_accm += __half2float(tmp.x) * __half2float(tmp.x) + __half2float(tmp.y) * __half2float(tmp.y);
+        block_sum += __half2float(tmp.x) * __half2float(tmp.x) + __half2float(tmp.y) * __half2float(tmp.y);
     }
 
     // Mean of squares
-    float block_sum = blockReduceSum<float>(thread_accm);
+    blockReduceSum<float>(block_sum);
     __shared__ Vec_t inv_rms;
 
     if (tid == 0) {
@@ -172,7 +169,7 @@ __global__ void fusedAddBiasResidualAndRMSNorm(
 
 template <typename T>
 void launchFusedAddBiasResidualAndRMSNorm(
-    TensorWrapper<T> *residual,
+    TensorWrapper<T> *residual, // bias or residual
     TensorWrapper<T> *decoder_out, // [num tokens, hidden_units]
     BaseWeight<T> *norm,
     T *scale,                      // RMSNorm weights (gamma)
@@ -198,9 +195,9 @@ void launchFusedAddBiasResidualAndRMSNorm(
         hidden_units
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(decoder_out->data);
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(decoder_out->data);
+    #endif
 }
 
 template void launchFusedAddBiasResidualAndRMSNorm<float>(

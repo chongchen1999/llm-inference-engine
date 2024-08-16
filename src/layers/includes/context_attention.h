@@ -2,14 +2,14 @@
 
 #include "../../weights/includes/attention_weights.h"
 #include "../../memory/allocator/cuda_allocator.h"
-#include "../../kernels/includes/linear.h"
-#include "../../kernels/includes/scale_and_mask_and_softmax.h"
-#include "../../kernels/includes/qkv_bias_and_rope.h"
-#include "../../kernels/includes/transpose_and_remove_padding.h"
-#include "../../kernels/includes/concat_past_kv.h"
-#include "../../kernels/includes/repeat_kv.h"
+#include "../../kernels/includes/linear.cuh"
+#include "../../kernels/includes/scale_and_mask_and_softmax.cuh"
+#include "../../kernels/includes/qkv_bias_and_rope.cuh"
+#include "../../kernels/includes/transpose_and_remove_padding.cuh"
+#include "../../kernels/includes/concat_past_kv.cuh"
+#include "../../kernels/includes/repeat_kv.cuh"
 #include "../../utils/tensor.h"
-#include "../../kernels/includes/cublas_utils.h"
+#include "../../kernels/includes/cublas_utils.cuh"
 #include "../../models/llama/llama_params.h"
 
 template <typename T>

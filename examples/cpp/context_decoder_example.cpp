@@ -7,7 +7,7 @@
 #include "../../src/layers/includes/context_decoder.h"
 #include "../../src/utils/macro.h"
 #include "../../src/models/tokenizer.h"
-#include "../../src/kernels/includes/input_embedding.h"
+#include "../../src/kernels/includes/input_embedding.cuh"
 #include "../../src/weights/includes/embedding_weights.h"
 
 int main(int argc, char **argv) {

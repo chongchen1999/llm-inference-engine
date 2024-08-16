@@ -3,11 +3,11 @@
 #include <memory>
 #include "../../weights/includes/attention_weights.h"
 #include "../../memory/allocator/cuda_allocator.h"
-#include "../../kernels/includes/linear.h"
-#include "../../kernels/includes/decoder_self_attention.h"
-#include "../../kernels/includes/qkv_bias_and_rope.h" // 2nd rope
+#include "../../kernels/includes/linear.cuh"
+#include "../../kernels/includes/decoder_self_attention.cuh"
+#include "../../kernels/includes/qkv_bias_and_rope.cuh" // 2nd rope
 #include "../../utils/tensor.h"
-#include "../../kernels/includes/cublas_utils.h"
+#include "../../kernels/includes/cublas_utils.cuh"
 #include "../../models/llama/llama_params.h"
 #include "../../utils/macro.h"
 

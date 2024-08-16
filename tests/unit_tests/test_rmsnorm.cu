@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "../../src/kernels/includes/rmsnorm.h"
+#include "../../src/kernels/includes/rmsnorm.cuh"
 
 void CPUfusedresidandRMSNorm(float *h_decoder_out, float *h_weights, 
                              float eps, int hidden_units, int num_tokens) {

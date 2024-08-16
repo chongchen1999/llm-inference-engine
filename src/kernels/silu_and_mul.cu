@@ -1,5 +1,5 @@
 #include <iostream>
-#include "includes/silu_and_mul.h"
+#include "includes/silu_and_mul.cuh"
 #include "../utils/cuda_debug_utils.cuh"
 #include "../utils/macro.h"
 
