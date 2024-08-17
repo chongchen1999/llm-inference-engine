@@ -5,6 +5,7 @@
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
+#include <functional>
 
 template <typename T>
 struct SumOp {
@@ -60,16 +61,16 @@ __device__ void blockReduce(T &val) {
     dim3 block((k_length + 32 - 1) / 32 * 32);
 */
 
-template <typename T, int NUMS_PER_THREAD_PER_ROW>
-__global__ void fusedScaleMaskAndSoftmax_float(
-    T *attn_score,
-    T *qk,
-    T *mask,
-    int batch_size,
-    int head_num,
-    int q_len,
-    int k_len,
-    float scale
+template <typename T, int nums_per_thread>
+__global__ void fusedScaleMaskAndSoftmax(
+    T *attention_weights,
+    const T *qk,
+    const T *mask,
+    const int batch_size,
+    const int head_num,
+    const int q_len,
+    const int k_len,
+    const float scale
 ) {
     // const int q_id = blockIdx.x;
     const int batch_id = blockIdx.y;
@@ -83,68 +84,67 @@ __global__ void fusedScaleMaskAndSoftmax_float(
 
     #pragma unroll
     for (int row_start = blockIdx.x; row_start < q_len; row_start += gridDim.x) {
-        const int qk_base_offset = batch_id * head_num * q_len * k_len +
-                                   head_id * q_len * k_len +
-                                   row_start * k_len + tid;
+        const int qk_base_offset = batch_id * head_num * q_len * k_len + head_id * q_len * k_len + row_start * k_len + tid;
         const int mask_base_offset = batch_id * q_len * k_len + row_start * k_len + tid;
+
         T qk_data = static_cast<T>(0);
         T mask_data = static_cast<T>(0);
         T thread_max = FLT_MIN;
-        T data[NUMS_PER_THREAD_PER_ROW];
+        T data[nums_per_thread];
         
         #pragma unroll
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
             qk_data = qk[qk_base_offset + col_start * blockDim.x];
             mask_data = mask[mask_base_offset + col_start * blockDim.x];
-            data[col_start] = scale * qk_data + (1.0 - mask_data) * (-10000.0f);
+            data[col_start] = scale * qk_data + (1.0f - mask_data) * (-10000.0f);
             thread_max = fmax(data[col_start], thread_max);
         }
 
-        T max_val = blockReduce<MaxOp, T>(thread_max);
+        blockReduce<MaxOp, T>(thread_max);
         if (tid == 0) {
-            shared_max = max_val;
+            shared_max = thread_max;
         }
         __syncthreads();
 
         T thread_sum = 0.0f;
         #pragma unroll
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
             data[col_start] = expf(data[col_start] - shared_max);
             thread_sum += data[col_start];
         }
 
-        T sum = blockReduce<SumOp, T>(thread_sum);
+        blockReduce<SumOp, T>(thread_sum);
         if (threadIdx.x == 0) {
-            inv_sum = 1 / (sum + 1e-6f);
+            inv_sum = 1.0f / (thread_sum + 1e-6f);
         }
         __syncthreads();
 
         #pragma unroll
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
-            attn_score[qk_base_offset + col_start * blockDim.x] = (data[col_start] * inv_sum);
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
+            attention_weights[qk_base_offset + col_start * blockDim.x] = (data[col_start] * inv_sum);
         }
     }
 }
 
-template <typename T_half, int NUMS_PER_THREAD_PER_ROW>
+template <int nums_per_thread>
 __global__ void fusedScaleMaskAndSoftmax_half(
-    T_half *attn_score,
-    T_half *qk,
-    T_half *mask,
-    int batch_size,
-    int head_num,
-    int q_len,
-    int k_len,
-    float scale
+    half *attention_weights,
+    const half *qk,
+    const half *mask,
+    const int batch_size,
+    const int head_num,
+    const int q_len,
+    const int k_len,
+    const float scale
 ) {
     int batch_id = blockIdx.y;
     int head_id = blockIdx.z;
-    int vec_size = Vec<T_half>::size;
-    using Vec_t = typename Vec<T_half>::Type;
+    int vec_size = Vec<half>::size;
+    using Vec_t = typename Vec<half>::Type;
 
-    Vec_t *attn_score_vec = reinterpret_cast<Vec_t *>(attn_score);
-    Vec_t *qk_buf_vec = reinterpret_cast<Vec_t *>(qk);
-    Vec_t *attn_mask_vec = reinterpret_cast<Vec_t *>(mask);
+    Vec_t *attn_score_vec = reinterpret_cast<Vec_t *>(attention_weights);
+    const Vec_t *qk_buf_vec = reinterpret_cast<const Vec_t *>(qk);
+    const Vec_t *attn_mask_vec = reinterpret_cast<const Vec_t *>(mask);
     Vec_t ONE = ScalarCast2Vector::scalarCastToVector<Vec_t>(__float2half(1.0f));
     Vec_t NEG_INF = ScalarCast2Vector::scalarCastToVector<Vec_t>(__float2half(-10000.0f));
     Vec_t scale_vec = ScalarCast2Vector::scalarCastToVector<Vec_t>(__float2half(scale));
@@ -154,15 +154,16 @@ __global__ void fusedScaleMaskAndSoftmax_half(
         return;
     }
 
+    #pragma unroll
     for (int row_start = blockIdx.x; row_start < q_len; row_start += gridDim.x) {
         int qk_offset = 0;
         int mask_offset = 0;
         Vec_t qk_data;
         Vec_t mask_data;
         float thread_max = FLT_MIN;
-        Vec_t data[NUMS_PER_THREAD_PER_ROW];
+        Vec_t data[nums_per_thread];
 
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
             qk_offset = batch_id * head_num * q_len * k_len / 2 +
                         head_id * q_len * k_len / 2 +
                         row_start * k_len / 2 +
@@ -179,27 +180,27 @@ __global__ void fusedScaleMaskAndSoftmax_half(
             thread_max = fmax(fmax((float)data[col_start].x, (float)data[col_start].y), thread_max);
         }
 
-        float max_val = blockReduce<MaxOp, float>(thread_max);
+        blockReduce<MaxOp, float>(thread_max);
         if (threadIdx.x == 0) {
-            s_max = max_val;
+            s_max = thread_max;
         }
         __syncthreads();
 
         float thread_sum = 0.0f;
         #pragma unroll
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
             data[col_start] = h2exp(__hsub2(data[col_start], ScalarCast2Vector::scalarCastToVector<Vec_t>(s_max)));
             thread_sum += (float)(__hadd(data[col_start].x, data[col_start].y));
         }
 
-        float sum = blockReduce<SumOp, float>(thread_sum);
+        blockReduce<SumOp, float>(thread_sum);
         if (threadIdx.x == 0) {
-            inv_sum = 1 / (sum + 1e-6f);
+            inv_sum = 1 / (thread_sum + 1e-6f);
         }
         __syncthreads();
 
         #pragma unroll
-        for (int col_start = 0; col_start < NUMS_PER_THREAD_PER_ROW; ++col_start) {
+        for (int col_start = 0; col_start < nums_per_thread; ++col_start) {
             qk_offset = batch_id * head_num * q_len * k_len / 2 +
                         head_id * q_len * k_len / 2 +
                         row_start * k_len / 2 +
@@ -209,93 +210,146 @@ __global__ void fusedScaleMaskAndSoftmax_half(
     }
 }
 
-#define LAUNCH_SOFTMAX(dtype, vec_size)                                                                         \
-    if (block.x > 2048 && block.x <= 4096) {                                                                    \
-        constexpr int NUMS_PER_THREAD_PER_ROW = 4;                                                              \
-        block.x /= 4 * vec_size;                                                                                \
-        block.x = (block.x + 31) / 32 * 32;                                                                     \
-        assert(block.x < 1024);                                                                                 \
-        fusedScaleMaskAndSoftmax_##dtype<dtype, NUMS_PER_THREAD_PER_ROW><<<grid, block>>>((dtype *)attn_score->data, \
-                                                                                     (dtype *)qk->data,         \
-                                                                                     (dtype *)mask->data,       \
-                                                                                     batch_size,                \
-                                                                                     head_nums,                 \
-                                                                                     q_length,                  \
-                                                                                     k_length,                  \
-                                                                                     scale);                    \
-    } else if (block.x > 1024) {                                                                                 \
-        constexpr int NUMS_PER_THREAD_PER_ROW = 2;                                                              \
-        block.x /= 2 * vec_size;                                                                                \
-        block.x = (block.x + 32 - 1) / 32 * 32;                                                                 \
-        assert(block.x < 1024);                                                                                 \
-        fusedScaleMaskAndSoftmax_##dtype<dtype, NUMS_PER_THREAD_PER_ROW><<<grid, block>>>((dtype *)attn_score->data, \
-                                                                                     (dtype *)qk->data,         \
-                                                                                     (dtype *)mask->data,       \
-                                                                                     batch_size,                \
-                                                                                     head_nums,                 \
-                                                                                     q_length,                  \
-                                                                                     k_length,                  \
-                                                                                     scale);                    \
-    } else {                                                                                                    \
-        constexpr int NUMS_PER_THREAD_PER_ROW = 1;                                                              \
-        block.x /= vec_size;                                                                                     \
-        assert(block.x < 1024);                                                                                 \
-        fusedScaleMaskAndSoftmax_##dtype<dtype, NUMS_PER_THREAD_PER_ROW><<<grid, block>>>((dtype *)attn_score->data, \
-                                                                                     (dtype *)qk->data,         \
-                                                                                     (dtype *)mask->data,       \
-                                                                                     batch_size,                \
-                                                                                     head_nums,                 \
-                                                                                     q_length,                  \
-                                                                                     k_length,                  \
-                                                                                     scale);                    \
-    }
-
 template <typename T>
 void launchFusedScaleMaskAndSoftmax(
     TensorWrapper<T> *qk,
     TensorWrapper<T> *mask,
-    TensorWrapper<T> *attn_score,
+    TensorWrapper<T> *attention_weights,
     float scale
 ) {
-    // attention_score,    (batch_size, head_num, q_length, k_length), softmax output.
-    // qk,                 (batch_size, head_num, q_length, k_length), QK^T.
-    // attention_mask,     (batch_size, q_length, k_length), attention mask.
     const int q_length = qk->shape[2];
     const int batch_size = qk->shape[0];
     const int head_nums = qk->shape[1];
     const int k_length = qk->shape[3];
-    bool is_half = sizeof(T) == 2;
-
-    // TODO: Should enhance it by padding to support odd ones
-    if (is_half) {
-        LLM_CHECK_WITH_INFO(k_length % 2 == 0, "Currently, K_len should be divided by 2 under half type!");
-    }
 
     dim3 grid(q_length, batch_size, head_nums);
     dim3 block((k_length + 31) / 32 * 32);
 
-    if (is_half) {
-        LAUNCH_SOFTMAX(half, 2);
+    if (block.x > 2048 && block.x <= 4096) {
+        block.x /= 4;
+        block.x = (block.x + 31) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax<T, 4><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
+    } else if (block.x > 1024) {
+        block.x /= 2;
+        block.x = (block.x + 32 - 1) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax<T, 2><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
     } else {
-        LAUNCH_SOFTMAX(float, 1);
+        block.x = (block.x + 32 - 1) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax<T, 1><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
     }
 
     #ifdef PRINT_DATA
-        print_data<<<1, 1>>>(attn_score->data);
+        print_data<<<1, 1>>>(attention_weights->data);
     #else
     #endif
+}
+
+template <>
+void launchFusedScaleMaskAndSoftmax(
+    TensorWrapper<half> *qk,
+    TensorWrapper<half> *mask,
+    TensorWrapper<half> *attention_weights,
+    float scale
+) {
+    const int q_length = qk->shape[2];
+    const int batch_size = qk->shape[0];
+    const int head_nums = qk->shape[1];
+    const int k_length = qk->shape[3];
+
+    LLM_CHECK_WITH_INFO(k_length % 2 == 0, "Currently, K_len should be divided by 2 under half type!");
+
+    dim3 grid(q_length, batch_size, head_nums);
+    dim3 block((k_length + 31) / 32 * 32);
+
+    if (block.x > 2048 && block.x <= 4096) {
+        block.x /= 4;
+        block.x = (block.x + 31) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax_half<4><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
+    } else if (block.x > 1024) {
+        block.x /= 2;
+        block.x = (block.x + 32 - 1) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax_half<2><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
+    } else {
+        block.x = (block.x + 32 - 1) / 32 * 32;
+        assert(block.x < 1024);
+        fusedScaleMaskAndSoftmax_half<1><<<grid, block>>>(
+            attention_weights->data,
+            qk->data,
+            mask->data,
+            batch_size,
+            head_nums,
+            q_length,
+            k_length,
+            scale
+        );
+    }
+
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(attention_weights->data);
+    #else
+    #endif   
 }
 
 template void launchFusedScaleMaskAndSoftmax(
     TensorWrapper<float> *qk,
     TensorWrapper<float> *mask,
-    TensorWrapper<float> *attn_score,
+    TensorWrapper<float> *attention_weights,
     float scale
 );
 
 template void launchFusedScaleMaskAndSoftmax(
     TensorWrapper<half> *qk,
     TensorWrapper<half> *mask,
-    TensorWrapper<half> *attn_score,
+    TensorWrapper<half> *attention_weights,
     float scale
 );

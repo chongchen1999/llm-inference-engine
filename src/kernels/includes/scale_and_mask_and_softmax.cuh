@@ -11,6 +11,6 @@ template <typename T>
 void launchFusedScaleMaskAndSoftmax(
     TensorWrapper<T> *qk,
     TensorWrapper<T> *mask,
-    TensorWrapper<T> *attn_score,
+    TensorWrapper<T> *attention_weights,
     float scale
 );
