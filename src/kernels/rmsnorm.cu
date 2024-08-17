@@ -1,40 +1,32 @@
 #include <stdio.h>
 #include "includes/rmsnorm.cuh"
 
-// Bugs:
-// 1. Second warpReduceSum returns 0 due to blockDim.x < 32; blockDim.x / 32 = 0
-// 2. Output buffer values are the same as before the call because we didn't successfully write into the output address
-// 3. The first 32 values of the output buffer are correct, but the latter values are wrong because when using vec, the element count of a row is hidden_units / vec_size; we need to handle row stride carefully
-// 4. Remember to add __syncthreads() in fp32/fp16 kernels; otherwise, we get incorrect results. Here, missing __syncthreads() leads to some results being 0
-
 template<typename T>
-__device__ __forceinline__ T warpReduceSum(T val) {
+__device__ __forceinline__ void warpReduceSum(T &val) {
     #pragma unroll
-    for (int i = 16; i > 0; i >>= 1) {
-        val += __shfl_xor_sync(0xffffffff, val, i);
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        val += __shfl_xor_sync(0xffffffff, val, offset);
     }
-    return val;
 }
 
-// Note: When blockSize < 32, using blockDim.x / 32 to get the number of warps is incorrect; instead, use ceil.
 template<typename T>
-__device__ T blockReduceSum(T val) {
+__device__ void blockReduceSum(T &val) {
     const int tid = threadIdx.x;
-    const int warpId = tid >> 5;
-    const int laneId = tid & 31;
-    const int warpNum = (blockDim.x + 31) >> 5;
+    const int warp_id = tid >> 5;
+    const int lane_id = tid & 31;
+    const int warp_num = (blockDim.x + 31) >> 5;
+    __shared__ T warp_sum[32];
 
-    static __shared__ T warpSum[32];
-    val = warpReduceSum<T>(val);
-
-    if (laneId == 0) {
-        warpSum[warpId] = val;
+    warpReduceSum<T>(val);
+    if (lane_id == 0) {
+        warp_sum[warp_id] = val;
     }
     __syncthreads();
 
-    T sum = tid < warpNum ? warpSum[tid] : 0;
-    sum = warpReduceSum<T>(sum); // Though 0th owns the sum, no need to shuffle sync
-    return sum;
+    if (warp_id == 0) {
+        val = lane_id < warp_num ? warp_sum[lane_id] : static_cast<T>(0);
+        warpReduceSum<T>(val);
+    }
 }
 
 // This kernel is used at the beginning of every decoder layer and at the end of 32 decoder layers
@@ -42,139 +34,140 @@ __device__ T blockReduceSum(T val) {
 // This kernel copies decoder_out to decoder_residual and then normalizes decoder_out; weights is gamma in RMSNorm
 template <typename T>
 __global__ void RMSNorm(
-    T *decoderOut,          // [num tokens, q_hidden_units]
-    T *decoderResidual,     // [num tokens, q_hidden_units]
+    T *decoder_out,          // [num tokens, q_hidden_units]
+    T *decoder_residual,     // [num tokens, q_hidden_units]
     const T *weights,       // [hidden_units], aka gamma
-    float eps,
-    int numTokens,
-    int hidden_units
+    const float eps,
+    const int num_tokens,
+    const int hidden_units
 ) {
+    const int tid = threadIdx.x;
     const int vec_size = Vec<T>::size;
     using Vec_t = typename Vec<T>::Type;
 
-    float thread_sum = 0.0f;
-    auto vec_dout = reinterpret_cast<Vec_t *>(decoderOut + blockIdx.x * hidden_units);
-    auto vec_rsd = reinterpret_cast<Vec_t *>(decoderResidual + blockIdx.x * hidden_units);
+    float block_sum = 0.0f;
+    Vec_t *vec_decoder_out = reinterpret_cast<Vec_t *>(decoder_out + blockIdx.x * hidden_units);
+    Vec_t *vec_residual = reinterpret_cast<Vec_t *>(decoder_residual + blockIdx.x * hidden_units);
 
     #pragma unroll
     for (int idx = threadIdx.x; idx < hidden_units / vec_size; idx += blockDim.x) {
-        Vec_t vec_temp = vec_dout[idx];
-        vec_rsd[idx] = vec_temp;
+        Vec_t vec_temp = vec_decoder_out[idx];
+        vec_residual[idx] = vec_temp;
         Vec_t vec_sqr = VectorizedOperator<Vec_t>::mul(vec_temp, vec_temp);
-        thread_sum += vec_sqr.x;
-        thread_sum += vec_sqr.y;
-        thread_sum += vec_sqr.z;
-        thread_sum += vec_sqr.w;
+        block_sum += vec_sqr.x;
+        block_sum += vec_sqr.y;
+        block_sum += vec_sqr.z;
+        block_sum += vec_sqr.w;
     }
 
-    thread_sum = blockReduceSum<float>(thread_sum);
-    __shared__ float invMean;
+    blockReduceSum<T>(block_sum);
+    __shared__ T inv_mean;
 
-    if (threadIdx.x == 0) {
-        invMean = rsqrtf(thread_sum / hidden_units + eps);
+    if (tid == 0) {
+        inv_mean = rsqrtf(block_sum / hidden_units + eps);
     }
     __syncthreads();
 
-    auto vecWeights = reinterpret_cast<Vec_t *>(const_cast<T *>(weights));
+    const Vec_t *vec_weights = reinterpret_cast<const Vec_t *>(weights);
 
     #pragma unroll
-    for (int idx = threadIdx.x; idx < hidden_units / vec_size; idx += blockDim.x) {
-        vec_dout[idx] = VectorizedOperator<Vec_t>::mul(
-            VectorizedOperator<Vec_t>::mul(vec_dout[idx], vecWeights[idx]), 
-            ScalarCast2Vector::scalarCastToVector<Vec_t, float>(invMean)
+    for (int idx = tid; idx < hidden_units / vec_size; idx += blockDim.x) {
+        vec_decoder_out[idx] = VectorizedOperator<Vec_t>::mul(
+            VectorizedOperator<Vec_t>::mul(vec_decoder_out[idx], vec_weights[idx]), 
+            ScalarCast2Vector::scalarCastToVector<Vec_t, float>(inv_mean)
         );
     }
 }
 
 template<>
 __global__ void RMSNorm(
-    half *decoderOut,        // [num tokens, q_hidden_units]
-    half *decoderResidual,   // [num tokens, q_hidden_units]
+    half *decoder_out,        // [num tokens, q_hidden_units]
+    half *decoder_residual,   // [num tokens, q_hidden_units]
     const half *weights,     // [hidden_units]
-    float eps,
-    int numTokens,
-    int hidden_units
+    const float eps,
+    const int num_tokens,
+    const int hidden_units
 ) {
+    const int tid = threadIdx.x;
     const int vec_size = Vec<half>::size;
     using Vec_t = typename Vec<half>::Type;
 
-    auto vec_dout = reinterpret_cast<Vec_t *>(decoderOut + blockDim.x * hidden_units);
-    Vec_t *rsd = (decoderResidual != nullptr) ? reinterpret_cast<Vec_t *>(decoderResidual + blockDim.x * hidden_units) : nullptr;
+    Vec_t *vec_decoder_out = reinterpret_cast<Vec_t *>(decoder_out + blockDim.x * hidden_units);
+    Vec_t *vec_residual = (decoder_residual != nullptr) ? 
+        reinterpret_cast<Vec_t *>(decoder_residual + blockDim.x * hidden_units) : nullptr;
     
-    float thread_sum = 0.0f;
+    float block_sum = 0.0f;
 
     #pragma unroll
     for (int i = threadIdx.x; i < hidden_units / vec_size; i += blockDim.x) {
-        Vec_t out = vec_dout[i]; // Note: offset should divide vec_size
-        if (decoderResidual != nullptr) {
-            rsd[i] = out;
+        Vec_t temp = vec_decoder_out[i]; // Note: offset should divide vec_size
+        if (decoder_residual != nullptr) {
+            vec_residual[i] = temp;
         }
-        thread_sum += __half2float(out.x) * __half2float(out.x);
-        thread_sum += __half2float(out.y) * __half2float(out.y);
+        block_sum += __half2float(temp.x) * __half2float(temp.x);
+        block_sum += __half2float(temp.y) * __half2float(temp.y);
     }
 
     // Mean(x^2)
-    float blockSum = blockReduceSum<float>(thread_sum);
-    __shared__ float invFenmu;
+    blockReduceSum<float>(block_sum);
+    __shared__ float inv_mean;
 
-    if (threadIdx.x == 0) {
-        invFenmu = rsqrtf(blockSum / hidden_units + eps);
+    if (tid == 0) {
+        inv_mean = rsqrtf(block_sum / hidden_units + eps);
     }
     __syncthreads();
 
     // RMSNorm
-    auto vecWeights = reinterpret_cast<Vec_t *>(const_cast<half *>(weights));
+    const Vec_t *vec_weights = reinterpret_cast<const Vec_t *>(weights);
 
-    for (int i = threadIdx.x; i < hidden_units / vec_size; i += blockDim.x) {
-        Vec_t doutHalf2 = vec_dout[i];
-        vec_dout[i].x = vecWeights[i].x * __float2half(__half2float(doutHalf2.x) * invFenmu);
-        vec_dout[i].y = vecWeights[i].y * __float2half(__half2float(doutHalf2.y) * invFenmu);
+    for (int i = tid; i < hidden_units / vec_size; i += blockDim.x) {
+        Vec_t temp = vec_decoder_out[i];
+        vec_decoder_out[i].x = vec_weights[i].x * __float2half(__half2float(temp.x) * inv_mean);
+        vec_decoder_out[i].y = vec_weights[i].y * __float2half(__half2float(temp.y) * inv_mean);
     }
 }
 
 template<typename T>
 void launchRMSNorm(
-    TensorWrapper<T> *decoderOut,           // [num tokens, hidden_units]
-    TensorWrapper<T> *decoderResidual,      // [num tokens, hidden_units]
-    LayerNormWeight<T> *attnNormWeight,     // [hidden_units]
+    TensorWrapper<T> *decoder_out,           // [num tokens, hidden_units]
+    TensorWrapper<T> *decoder_residual,      // [num tokens, hidden_units]
+    LayerNormWeight<T> *attention_norm_weight,     // [hidden_units]
     float eps,
     bool isLast
 ) {
-    const int numTokens = decoderOut->shape[0];
-    const int hidden_units = decoderOut->shape[1];
+    const int num_tokens = decoder_out->shape[0];
+    const int hidden_units = decoder_out->shape[1];
     const int vec_size = Vec<T>::size;
-    const int numThreads = std::min<int>(hidden_units / vec_size, 1024);
+    const int num_threads = std::min<int>(hidden_units / vec_size, 1024);
 
-    dim3 grid(numTokens);
-    dim3 block(numThreads);
+    dim3 grid(num_tokens);
+    dim3 block(num_threads);
 
     RMSNorm<T><<<grid, block>>>(
-        decoderOut->data,
-        decoderResidual->data,
-        attnNormWeight->gamma,
+        decoder_out->data,
+        decoder_residual->data,
+        attention_norm_weight->gamma,
         eps,
-        numTokens,
+        num_tokens,
         hidden_units
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(decoderOut->data);
-#else
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(decoder_out->data);
+    #else
+    #endif
 }
 
 template void launchRMSNorm(
-    TensorWrapper<float> *decoderOut,        // [num tokens, hidden_units]
-    TensorWrapper<float> *decoderResidual,
-    LayerNormWeight<float> *attnNormWeight,
-    float eps,
-    bool isLast
+    TensorWrapper<float> *decoder_out,        // [num tokens, hidden_units]
+    TensorWrapper<float> *decoder_residual,
+    LayerNormWeight<float> *attention_norm_weight,
+    float eps, bool is_last
 );
 
 template void launchRMSNorm(
-    TensorWrapper<half> *decoderOut,         // [num tokens, hidden_units]
-    TensorWrapper<half> *decoderResidual,
-    LayerNormWeight<half> *attnNormWeight,
-    float eps,
-    bool isLast
+    TensorWrapper<half> *decoder_out,         // [num tokens, hidden_units]
+    TensorWrapper<half> *decoder_residual,
+    LayerNormWeight<half> *attention_norm_weight,
+    float eps, bool is_last
 );

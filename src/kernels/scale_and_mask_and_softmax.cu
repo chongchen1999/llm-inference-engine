@@ -11,6 +11,7 @@ struct SumOp {
     __device__ __forceinline__ T operator()(const T &a, const T &b) const {
         return a + b;
     }
+    static const T identity = static_cast<T>(0);
 };
 
 template <typename T>
@@ -18,31 +19,35 @@ struct MaxOp {
     __device__ __forceinline__ T operator()(const T &a, const T &b) const {
         return a > b ? a : b;
     }
+    static const T identity = static_cast<T>(-1e9);
 };
 
 template <template <typename> class Operator, typename T>
-__device__ __forceinline__ T warpReduce(T val) {
+__device__ __forceinline__ void warpReduce(T &val) {
     #pragma unroll
-    for (int mask = 16; mask > 0; mask >>= 1) {
-        val = Operator<T>()(val, __shfl_xor_sync(0xffffffff, val, mask));
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        val = Operator<T>()(val, __shfl_xor_sync(0xffffffff, val, offset));
     }
-    return val;
 }
 
 template <template <typename> class Operator, typename T>
-__device__ T blockReduce(T val) {
-    int tid = threadIdx.x;
-    int warp_id = tid >> 5;
-    int lane_id = tid & 31;
-    int warp_nums = (blockDim.x + 31) >> 5;
-    static __shared__ T warp[32]; // threads in a block must be less than 1024
-    val = warpReduce<Operator, T>(val);
+__device__ void blockReduce(T &val) {
+    const int tid = threadIdx.x;
+    const int warp_id = tid >> 5;
+    const int lane_id = tid & 31;
+    const int warp_nums = (blockDim.x + 31) >> 5;
+    __shared__ T warp[32]; // threads in a block must be less than 1024
+
+    warpReduce<Operator, T>(val);
     if (lane_id == 0) {
         warp[warp_id] = val;
     }
     __syncthreads();
-    T warp_val = tid < warp_nums ? warp[tid] : 0;
-    return warpReduce<Operator, T>(warp_val);
+
+    if (warp_id == 0) {
+        val = lane_id < warp_nums ? warp[lane_id] : Operator<T>::identity;
+        warpReduce<Operator, T>(val);
+    }
 }
 
 /*
@@ -51,8 +56,8 @@ __device__ T blockReduce(T val) {
     Q(KT): [bs, head_num, max_q_len, max_k_len]
     softmax(scale * Q(KT)): [bs, head_num, max_q_len, max_k_len]
 
-dim3 grid(q_length, batch_size, head_nums);
-dim3 block((k_length + 32 - 1) / 32 * 32);
+    dim3 grid(q_length, batch_size, head_nums);
+    dim3 block((k_length + 32 - 1) / 32 * 32);
 */
 
 template <typename T, int NUMS_PER_THREAD_PER_ROW>
@@ -275,10 +280,10 @@ void launchFusedScaleMaskAndSoftmax(
         LAUNCH_SOFTMAX(float, 1);
     }
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(attn_score->data);
-#else
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(attn_score->data);
+    #else
+    #endif
 }
 
 template void launchFusedScaleMaskAndSoftmax(

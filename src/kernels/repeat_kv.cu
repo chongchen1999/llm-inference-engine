@@ -10,10 +10,9 @@
         head_num
     );
 */
-
 template <typename T>
 __global__ void repeatKVCache(
-    T *kv_dst, // [batch_size, head_num, max_k_len, head_size]
+    T *kv_dst,  // [batch_size, head_num, max_k_len, head_size]
     const T *kv_src, // [num_layers, batch_size, kv_head_num, max_seq_len, head_size]
     const int layer_offset,
     const int head_num,
@@ -37,15 +36,13 @@ __global__ void repeatKVCache(
 
     // Only fetch context_length (< max_seq_len) KV data from all KV cache of the current sequence
     if (kv_seq_id < seq_len) {
-        const int src_idx = batch_id * kv_head_num * max_seq_len * head_size +
-                            kv_head_id * max_seq_len * head_size +
-                            kv_seq_id * head_size +
-                            kv_head_id;
+        const int src_idx = 
+            batch_id * kv_head_num * max_seq_len * head_size +
+            kv_head_id * max_seq_len * head_size + kv_seq_id * head_size + kv_head_id;
 
-        const int dst_idx = batch_id * head_num * head_size * max_k_len +
-                            head_id * head_size * max_k_len +
-                            kv_seq_id * head_size +
-                            kv_head_id;
+        const int dst_idx = 
+            batch_id * head_num * head_size * max_k_len + 
+            head_id * head_size * max_k_len + kv_seq_id * head_size + kv_head_id;
 
         val_dst[dst_idx] = val_src[src_idx];
     }
@@ -103,12 +100,11 @@ void launchRepeatKVCache(
         max_seq_len
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(k_cache_dst->data);
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(k_cache_dst->data);
+    #endif
 }
 
-// Explicit template instantiations
 template void launchRepeatKVCache(
     TensorWrapper<float> *k_cache_src,
     TensorWrapper<float> *v_cache_src,

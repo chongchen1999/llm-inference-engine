@@ -76,9 +76,9 @@ void launchSiluAndMul(
         intermedia_size
     );
     
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(out->data);
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(out->data);
+    #endif
 }
 
 // Instantiate the template to avoid linking issues

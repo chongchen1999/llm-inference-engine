@@ -12,12 +12,12 @@
 */
 
 template <typename T>
-__global__ void samplingKernel(
-    int *const topk_id,
-    T *const topk_val, // [bs, K] from topK
-    int *const output_id, // [bs]
-    int *const seq_len, // cumulated seq len, [bs]
-    bool *const is_finished, // [bs]
+__global__ void sampling(
+    const int *topk_id,
+    T *topk_val, // [bs, K] from topK
+    int *output_id, // [bs]
+    int *seq_len, // cumulated seq len, [bs]
+    bool *is_finished, // [bs]
     const int K,
     const int rand_num, // step
     const int end_id, // fixed value when initializing llama model
@@ -81,14 +81,14 @@ void launchSampling(
 ) {
     const int batch_size = topk_id->shape[0];
     const int K = topk_id->shape[1];
-    const int vocab_size = (*params)["vocab_size"];
-    const int step = (*params)["step"];
-    const int end_id = (*params)["end_id"];
+    const int vocab_size = params->at("vocab_size");
+    const int step = params->at("step");
+    const int end_id = params->at("end_id");
 
     dim3 grid(batch_size);
     dim3 block(K);
 
-    samplingKernel<<<grid, block>>>(
+    sampling<<<grid, block>>>(
         topk_id->data,
         topk_val->data,
         output_id->data,
@@ -101,7 +101,6 @@ void launchSampling(
     );
 }
 
-// Explicit instantiation for float and half types
 template void launchSampling(
     TensorWrapper<int> *topk_id,
     TensorWrapper<float> *topk_val,
