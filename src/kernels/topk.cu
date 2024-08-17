@@ -6,12 +6,12 @@
 
 // Note: a and b are two topK reductions outputting a single topK
 
-template <typename T, int K>
+template <typename T, int beam_size>
 struct TopkReduceFunctor {
-    __device__ TopK<T, K> operator()(const TopK<T, K>& a, const TopK<T, K>& b) {
-        TopK<T, K> res = a;
+    __device__ TopK<T, beam_size> operator()(const TopK<T, beam_size>& a, const TopK<T, beam_size>& b) {
+        TopK<T, beam_size> res = a;
         #pragma unroll
-        for (int i = 0; i < K; ++i) {
+        for (int i = 0; i < beam_size; ++i) {
             res.insertQueue(b.val[i], b.id[i]);
         }
         return res;
@@ -21,7 +21,7 @@ struct TopkReduceFunctor {
 // gridsize: bs * beam_num * blocks_per_beam 
 // blocksize: 1024
 // shape infer: [bs, beam_num, vocab size] => [bs, beam_num, blocks_per_beam, K]
-template<typename T, int K, int block_size, int blocks_per_beam>
+template<typename T, int beam_size, int block_size, int blocks_per_beam>
 __global__ void reduceTopK1(
     const T *const probs,
     const int vocab_size, 
@@ -36,7 +36,7 @@ __global__ void reduceTopK1(
     const int blocks_stride = blocks_per_beam * block_size;
     const int base_data_offset = row_id * vocab_size;
 
-    TopK<T, K> thread_topK;
+    TopK<T, beam_size> thread_topK;
     thread_topK.init();
 
     // Thread local reduce
@@ -48,15 +48,15 @@ __global__ void reduceTopK1(
     }
 
     // Block reduce
-    using BlockReduceTopk = cub::BlockReduce<TopK<T, K>, block_size>;
+    using BlockReduceTopk = cub::BlockReduce<TopK<T, beam_size>, block_size>;
     __shared__ typename BlockReduceTopk::TempStorage temp_storage;
 
-    TopK<T, K> block_topk = BlockReduceTopk(temp_storage).Reduce(thread_topK, TopkReduceFunctor<T, K>());
+    TopK<T, beam_size> block_topk = BlockReduceTopk(temp_storage).Reduce(thread_topK, TopkReduceFunctor<T, beam_size>());
 
     if (tid == 0) {
         #pragma unroll
-        for (int k_offset = 0; k_offset < K; ++k_offset) {
-            const int offset = row_id * blocks_per_beam * K + beam_lane * K + k_offset;
+        for (int k_offset = 0; k_offset < beam_size; ++k_offset) {
+            const int offset = row_id * blocks_per_beam * beam_size + beam_lane * beam_size + k_offset;
             topK_vals[offset] = block_topk.val[k_offset];
             topK_ids[offset] = block_topk.id[k_offset];
         }
@@ -67,7 +67,7 @@ __global__ void reduceTopK1(
 // ids are global word ids from beam width * vocab size
 // gridSize = bs * beam_num
 // blockSize = 128
-template<typename T, int K, int block_size, int blocks_per_beam>
+template<typename T, int beam_size, int block_size, int blocks_per_beam>
 __global__ void reduceTopK2(
     const int *topK_ids, // [bs, beam_num, blocks_per_beam, K]
     const T *topK_vals, // [bs, beam_num, blocks_per_beam, K]
@@ -77,24 +77,24 @@ __global__ void reduceTopK2(
     const int tid = threadIdx.x;
     // const int gid = blockIdx.x * blockDim.x + threadIdx.x;
     // const int row_id = blockIdx.x;
-    const int reduced_beam_size = blocks_per_beam * K;
+    const int reduced_beam_size = blocks_per_beam * beam_size;
 
-    TopK<T, K> thread_topK;
+    TopK<T, beam_size> thread_topK;
     // Thread local reduce
     #pragma unroll
     for (int i = tid; i < reduced_beam_size; i += blockDim.x) {
-        const int data_offset = blockIdx.x * blocks_per_beam * K + i;
+        const int data_offset = blockIdx.x * blocks_per_beam * beam_size + i;
         thread_topK.insertQueue(topK_vals[data_offset], topK_ids[i]);
     }
 
     // Block reduce
-    typedef cub::BlockReduce<TopK<T, K>, block_size> BlockReduceTopk;
+    typedef cub::BlockReduce<TopK<T, beam_size>, block_size> BlockReduceTopk;
     __shared__ typename BlockReduceTopk::TempStorage temp_storage;
-    TopK<T, K> block_topk = BlockReduceTopk(temp_storage).Reduce(thread_topK, TopkReduceFunctor<T, K>());
+    TopK<T, beam_size> block_topk = BlockReduceTopk(temp_storage).Reduce(thread_topK, TopkReduceFunctor<T, beam_size>());
 
     if (tid == 0) {
-        for (int k_offset = 0; k_offset < K; ++k_offset) {
-            const int offset = blockIdx.x * K + k_offset;
+        for (int k_offset = 0; k_offset < beam_size; ++k_offset) {
+            const int offset = blockIdx.x * beam_size + k_offset;
             final_topK_vals[offset] = block_topk.val[k_offset];
             final_topK_ids[offset] = block_topk.id[k_offset];
         }
@@ -139,7 +139,7 @@ void launchTopKForBeamSearch(
     reduceTopK2<T, K, 128, blocks_per_beam><<<grid_round2, block_round2>>>(topK_ids, topK_vals, final_topK_ids, final_topK_vals);
 }
 
-template void launchTopKForBeamSearch<float>(
+template void launchTopKForBeamSearch(
     TensorWrapper<float> *probs,
     TensorWrapper<int> *topk_ids,
     TensorWrapper<float> *topk_vals,
@@ -147,7 +147,7 @@ template void launchTopKForBeamSearch<float>(
     TensorWrapper<float> *final_topk_vals
 );
 
-template void launchTopKForBeamSearch<half>(
+template void launchTopKForBeamSearch(
     TensorWrapper<half> *probs,
     TensorWrapper<int> *topk_ids,
     TensorWrapper<half> *topk_vals,

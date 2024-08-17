@@ -68,9 +68,9 @@ void launchFusedTransposeAndRemovePadding(
         padding_offset->data
     );
 
-#ifdef PRINT_DATA
-    print_data<<<1, 1>>>(lineared_qkv_buf->data);
-#endif
+    #ifdef PRINT_DATA
+        print_data<<<1, 1>>>(lineared_qkv_buf->data);
+    #endif
 }
 
 template void launchFusedTransposeAndRemovePadding(
