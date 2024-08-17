@@ -21,18 +21,16 @@ LlamaFFNLayer<T>::LlamaFFNLayer(
     hidden_units(head_num * head_size) {}
 
 template<typename T>
-void LlamaFFNLayer<T>::allocateMemory(
-    LlamaAttentionDynamicParams *params
-) {
-    const int num_tokens = params->num_tokens;
+void LlamaFFNLayer<T>::allocateMemory(LlamaAttentionDynamicParams *dynamic_params) {
+    const int num_tokens = dynamic_params->num_tokens;
     DataType type = getTensorType<T>();
 
-    swiglu_input = std::make_unique<TensorWrapper<T>>(
+    swiglu_input = new TensorWrapper<T>(
         Device::GPU, type, 
         std::vector<int>{num_tokens, 2, intermediate_size}
     );
 
-    down_proj_input = std::make_unique<TensorWrapper<T>>(
+    down_proj_input = new TensorWrapper<T>(
         Device::GPU, type, 
         std::vector<int>{num_tokens, intermediate_size}
     );
@@ -54,13 +52,8 @@ template<typename T>
 void LlamaFFNLayer<T>::allocateMemory(const int &batch_size) {
     DataType type = getTensorType<T>();
 
-    swiglu_input = std::unique_ptr<TensorWrapper<T>>(
-        new TensorWrapper<T>(Device::GPU, type, {batch_size, 2, intermediate_size})
-    );
-
-    down_proj_input = std::unique_ptr<TensorWrapper<T>>(
-        new TensorWrapper<T>(Device::GPU, type, {batch_size, intermediate_size})
-    );
+    swiglu_input = new TensorWrapper<T>(Device::GPU, type, {batch_size, 2, intermediate_size});
+    down_proj_input = new TensorWrapper<T>(Device::GPU, type, {batch_size, intermediate_size});
 
     allocator->malloc(
         &swiglu_input->data,
@@ -82,6 +75,9 @@ void LlamaFFNLayer<T>::freeBuf() {
 
     allocator->free(down_proj_input->data);
     DeviceSyncAndCheckCudaError();
+
+    delete swiglu_input;
+    delete down_proj_input;
 }
 
 template<typename T>
@@ -89,25 +85,25 @@ void LlamaFFNLayer<T>::forward(
     TensorMap *inputs,
     TensorMap *outputs,
     LlamaFFNWeights<T> *weights,
-    LlamaAttentionDynamicParams *params
+    LlamaAttentionDynamicParams *dynamic_params
 ) {
     // printf("got in!\n");
-    if (params->num_tokens > 0) {
-        allocateMemory(params);
+    if (dynamic_params->num_tokens > 0) {
+        allocateMemory(dynamic_params);
     } else {
-        allocateMemory(params->batch_size);
+        allocateMemory(dynamic_params->batch_size);
     }
 
     Tensor *ffn_input = inputs->at("ffn_input");
     Tensor *ffn_output = outputs->at("ffn_output");
 
     ++count;
-    bool is_context = params->is_context;
+    const bool is_context = dynamic_params->is_context;
 
-#ifdef SAVE_DATA
-    saveTensor(ffn_input->as<T>(), "ffn_input.bin", count);
-#else
-#endif
+    #ifdef SAVE_DATA
+        saveTensor(ffn_input->as<T>(), "ffn_input.bin", count);
+    #else
+    #endif
     /*printf("is_transposed %d\n", weights->gate_and_up.is_transposed);
     print_tensor(ffn_input);
     print_weight(&weights->gate_and_up);*/
@@ -116,7 +112,7 @@ void LlamaFFNLayer<T>::forward(
     launchLinearGemm(
         ffn_input->wrap<T>(),
         &weights->gate_and_up,
-        swiglu_input.get(),
+        swiglu_input,
         cublas_wrapper,
         false,
         weights->gate_and_up.is_transposed
@@ -124,24 +120,24 @@ void LlamaFFNLayer<T>::forward(
     DeviceSyncAndCheckCudaError();
     // printf("gate_and_up done!\n");
 
-#ifdef SAVE_DATA
-    saveTensor(swiglu_input, "swiglu_input.bin", count);
-#else
-#endif
+    #ifdef SAVE_DATA
+        saveTensor(swiglu_input, "swiglu_input.bin", count);
+    #else
+    #endif
 
     // 2. SwiGLU Activation
-    launchSiluAndMul(swiglu_input.get(), down_proj_input.get());
+    launchSiluAndMul(swiglu_input, down_proj_input);
     DeviceSyncAndCheckCudaError();
     // printf("silu done!\n");
 
-#ifdef SAVE_DATA
-    saveTensor(down_proj_input, "down_proj_input.bin", count);
-#else
-#endif
+    #ifdef SAVE_DATA
+        saveTensor(down_proj_input, "down_proj_input.bin", count);
+    #else
+    #endif
 
     // 3. Down Projection
     launchLinearGemm(
-        down_proj_input.get(),
+        down_proj_input,
         &weights->down,
         ffn_output->wrap<T>(),
         cublas_wrapper,

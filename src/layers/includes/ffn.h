@@ -14,7 +14,6 @@
 template<typename T>
 class LlamaFFNLayer {
 private:
-    // Shared params across all LLMs
     int head_num;
     int head_size;
     int intermediate_size;
@@ -28,10 +27,10 @@ private:
 
     // Buffers
     // [2, num tokens, intersize]
-    std::unique_ptr<TensorWrapper<T>> swiglu_input; //gate proj and up proj output buf
+    TensorWrapper<T> *swiglu_input; //gate proj and up proj output buf
     
     // [num tokens, intersize]
-    std::unique_ptr<TensorWrapper<T>> down_proj_input; // Down proj output buf
+    TensorWrapper<T> *down_proj_input; // Down proj output buf
 
 public:
     LlamaFFNLayer(
@@ -43,16 +42,13 @@ public:
         BaseAllocator *allocator
     );
 
-    void allocateMemory(LlamaAttentionDynamicParams *params);
-    
+    void allocateMemory(LlamaAttentionDynamicParams *dynamic_params);
     void allocateMemory(const int &batch_size);
-    
     void freeBuf();
-
     void forward(
         TensorMap *inputs, 
         TensorMap *outputs, 
         LlamaFFNWeights<T> *weights, 
-        LlamaAttentionDynamicParams *params
+        LlamaAttentionDynamicParams *dynamic_params
     );
 };

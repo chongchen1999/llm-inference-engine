@@ -46,20 +46,20 @@ template <typename T>
 void launchFusedTransposeAndRemovePadding(
     TensorWrapper<T> *padded_qkv_buf,  // [bs, head nums, seqlen, head size]
     TensorWrapper<int> *padding_offset,      // [num_tokens]
-    TensorWrapper<T> *lineared_qkv_buf // [num tokens, head nums, head size]
+    TensorWrapper<T> *lineared_qkv // [num tokens, head nums, head size]
 ) {
     const int batch_size = padded_qkv_buf->shape[0];
     const int head_num = padded_qkv_buf->shape[1];
     const int seq_len = padded_qkv_buf->shape[2];
     const int head_size = padded_qkv_buf->shape[3];
-    const int num_tokens = lineared_qkv_buf->shape[0];
+    const int num_tokens = lineared_qkv->shape[0];
 
     dim3 grid(num_tokens);
     dim3 block(std::min(head_num * head_size, 1024));
 
     fusedTransposeAndRemovePadding<T><<<grid, block>>>(
         padded_qkv_buf->data,
-        lineared_qkv_buf->data,
+        lineared_qkv->data,
         num_tokens,
         batch_size,
         seq_len,
@@ -69,18 +69,18 @@ void launchFusedTransposeAndRemovePadding(
     );
 
     #ifdef PRINT_DATA
-        print_data<<<1, 1>>>(lineared_qkv_buf->data);
+        print_data<<<1, 1>>>(lineared_qkv->data);
     #endif
 }
 
 template void launchFusedTransposeAndRemovePadding(
     TensorWrapper<float> *padded_qkv_buf,
     TensorWrapper<int> *padding_offset,
-    TensorWrapper<float> *lineared_qkv_buf
+    TensorWrapper<float> *lineared_qkv
 );
 
 template void launchFusedTransposeAndRemovePadding(
     TensorWrapper<half> *padded_qkv_buf,
     TensorWrapper<int> *padding_offset,
-    TensorWrapper<half> *lineared_qkv_buf
+    TensorWrapper<half> *lineared_qkv
 );

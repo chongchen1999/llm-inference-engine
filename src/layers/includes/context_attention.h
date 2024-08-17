@@ -15,7 +15,6 @@
 template <typename T>
 class LlamaContextAttentionLayer {
 private:
-    // Parameters shared across all LLMs
     int head_num;
     int head_size;
     int hidden_units;
@@ -30,16 +29,16 @@ private:
     BaseAllocator *allocator;
     CublasWrapper *cublas_wrapper;
 
-    // Buffers for linear and batch_gemm
-    TensorWrapper<T> *lineared_qkv_buf = nullptr; // 
-    TensorWrapper<T> *padded_q_buf = nullptr; // intermediate
-    TensorWrapper<T> *padded_k_buf = nullptr;
-    TensorWrapper<T> *padded_v_buf = nullptr;
-    TensorWrapper<T> *k_cache_buf = nullptr;
-    TensorWrapper<T> *v_cache_buf = nullptr;
-    TensorWrapper<T> *qkT_buf = nullptr;
-    TensorWrapper<T> *padded_qkTv_buf = nullptr;
-    TensorWrapper<T> *transposed_unpadded_qkv_buf = nullptr;
+    // intermediate buffers for linear and batch_gemm
+    TensorWrapper<T> *lineared_qkv = nullptr;
+    TensorWrapper<T> *padded_q = nullptr;
+    TensorWrapper<T> *padded_k = nullptr;
+    TensorWrapper<T> *padded_v = nullptr;
+    TensorWrapper<T> *k_cache = nullptr;
+    TensorWrapper<T> *v_cache = nullptr;
+    TensorWrapper<T> *qkT = nullptr;
+    TensorWrapper<T> *padded_qkTv = nullptr;
+    TensorWrapper<T> *transposed_unpadded_qkv = nullptr;
 
 public:
     LlamaContextAttentionLayer(

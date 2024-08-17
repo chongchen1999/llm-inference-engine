@@ -10,7 +10,7 @@ struct LlamaAttentionStaticParams {
     int kv_head_num = 32;
 };
 
-// ()note: llama类模型里面动态改变的变量, 注意非全部必需
+// note: llama类模型里面动态改变的变量, 注意非全部必需
 struct LlamaAttentionDynamicParams {
     int batch_size;
     int num_tokens;
