@@ -1,36 +1,30 @@
 #include <iostream>
 #include "../utils/macro.h"
 #include "includes/self_decoder.h"
-#include <memory>  // Include for smart pointers
 #include <vector>
+#include "../memory/memory_deleter.cuh"
 
 template<typename T>
-void LlamaSelfDecoder<T>::allocateMemory(LlamaAttentionDynamicParams *params) {
-    DataType type = getTensorType<T>();
-    int batch_size = params->batch_size;
+void LlamaSelfDecoder<T>::allocateMemory(LlamaAttentionDynamicParams *dynamic_params) {
+    const DataType type = getTensorType<T>();
+    const int batch_size = dynamic_params->batch_size;
 
-    decoder_residual = std::make_unique<TensorWrapper<T>>(
-        Device::GPU,
-        type,
-        std::vector<int>{batch_size, hidden_units}
-    );
-
-    allocator->malloc(
-        &decoder_residual->data,
-        sizeof(T) * batch_size * hidden_units,
-        false
-    );
+    decoder_residual = new TensorWrapper<T>(Device::GPU, type, std::vector<int>{batch_size, hidden_units});
+    allocator->malloc(&decoder_residual->data, sizeof(T) * batch_size * hidden_units, false);
 }
 
 template<typename T>
 void LlamaSelfDecoder<T>::freeBuf() {
     allocator->free(decoder_residual->data);
+    DeviceSyncAndCheckCudaError();
+
+    deallocate(decoder_residual, "new");
 }
 
 template<typename T>
 void LlamaSelfDecoder<T>::forward(
     TensorMap *input_tensors,
-    std::vector<std::unique_ptr<LlamaLayerWeight<T>>> *const layerWeights,
+    std::vector<LlamaLayerWeight<T> *> *layerWeights,
     TensorMap *output_tensors,
     LlamaAttentionDynamicParams *dynamic_params
 ) {
@@ -74,24 +68,18 @@ void LlamaSelfDecoder<T>::forward(
 
     for (int layer_id = 0; layer_id < num_layer; ++layer_id) {
         if (layer_id > 0) {
-            auto layer = std::make_unique<TensorWrapper<int>>(
-                Device::CPU,
-                type_int,
-                std::vector<int>{1},
-                &layer_id
-            );
-            self_attention_inputs.insert({"layer_id", layer.get()});
+            auto layer = new TensorWrapper<int>(Device::CPU, type_int, std::vector<int>{1}, &layer_id);
+            self_attention_inputs.insert({"layer_id", layer});
         }
 
         decoder_input = self_attention_inputs.at("attention_input");
 
         launchRMSNorm(
             decoder_input->wrap<T>(),  // in&out, [bs, q_hidden_units]
-            decoder_residual.get(),  // rmsnorm input hidden states, as input of next add residual
+            decoder_residual,  // rmsnorm input hidden states, as input of next add residual
             &layerWeights->at(layer_id)->attention_norm_weight,  // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );
-
         DeviceSyncAndCheckCudaError();
 
         self_attention->forward(
@@ -102,22 +90,16 @@ void LlamaSelfDecoder<T>::forward(
         );
 
         launchFusedAddBiasResidualAndRMSNorm(
-            decoder_residual.get(),  // in residual from tensor before rmsnorm and return decoder_residual + decoder_output, [bs, q_hidden_units]
+            decoder_residual,  // in residual from tensor before rmsnorm and return decoder_residual + decoder_output, [bs, q_hidden_units]
             decoder_output->wrap<T>(),  // in&out from attention output, [bs, q_hidden_units]
             &layerWeights->at(layer_id)->self_attention_weight.output,  // bias
             layerWeights->at(layer_id)->ffn_norm_weight.gamma,  // rmsnorm weights, [q_hidden_units]
             rmsnorm_eps
         );
-
         DeviceSyncAndCheckCudaError();
 
-        TensorMap ffn_inputs{
-            {"ffn_input", decoder_output}
-        };
-
-        TensorMap ffn_outputs{
-            {"ffn_output", decoder_output}
-        };
+        TensorMap ffn_inputs{{"ffn_input", decoder_output}};
+        TensorMap ffn_outputs{{"ffn_output", decoder_output}};
 
         ffn->forward(
             &ffn_inputs,
@@ -127,7 +109,7 @@ void LlamaSelfDecoder<T>::forward(
         );
 
         launchAddResidual(
-            decoder_residual.get(),  // in, [bs, hidden_units]
+            decoder_residual,  // in, [bs, hidden_units]
             decoder_output->wrap<T>(),  // in&out, [bs, hidden_units]
             true
         );

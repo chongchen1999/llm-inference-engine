@@ -1,9 +1,9 @@
 #include <iostream>
 #include <vector>
-#include <memory>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "../../src/layers/includes/ffn.h"
+#include "../../src/memory/memory_deleter.cuh"
 
 int main(int argc, char **argv) {
     constexpr int head_num = 4;
@@ -18,15 +18,15 @@ int main(int argc, char **argv) {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto cublas_wrapper = std::make_unique<CublasWrapper>(cublas_handle, cublaslt_handle);
-    auto allocator = std::make_unique<CudaAllocator>();
+    auto cublas_wrapper = new CublasWrapper(cublas_handle, cublaslt_handle);
+    auto allocator = new CudaAllocator();
 
     LlamaAttentionDynamicParams attention_dynamic_params;
     attention_dynamic_params.num_tokens = 14;
 
     std::cout << "Start malloc/cudamalloc buffer" << std::endl;
 
-    auto h_ffn_input = std::make_unique<float[]>(hidden_units * attention_dynamic_params.num_tokens);
+    float *h_ffn_input = new float[hidden_units * attention_dynamic_params.num_tokens];
     float *d_ffn_input;
     cudaMalloc(reinterpret_cast<void **>(&d_ffn_input), sizeof(float) * hidden_units * attention_dynamic_params.num_tokens);
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
         h_ffn_input[i] = static_cast<float>(i % 2 + 1);
     }
 
-    auto h_gate_up = std::make_unique<float[]>(hidden_units * 2 * intermediate_size);
+    float *h_gate_up = new float[hidden_units * 2 * intermediate_size];
     float *d_gate_up;
     cudaMalloc(reinterpret_cast<void **>(&d_gate_up), sizeof(float) * hidden_units * 2 * intermediate_size);
 
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
         h_gate_up[i] = static_cast<float>(i % 2 + 1);
     }
 
-    auto h_down = std::make_unique<float[]>(hidden_units * intermediate_size);
+    float *h_down = new float[hidden_units * intermediate_size];
     float *d_down;
     cudaMalloc(reinterpret_cast<void **>(&d_down), sizeof(float) * hidden_units * intermediate_size);
 
@@ -55,11 +55,9 @@ int main(int argc, char **argv) {
 
     std::cout << "End malloc/cudamalloc buffer and start memcpy h2d" << std::endl;
 
-    CHECK(cudaMemcpy(d_ffn_input, h_ffn_input.get(), sizeof(float) * hidden_units * attention_dynamic_params.num_tokens, cudaMemcpyHostToDevice));
-
-    CHECK(cudaMemcpy(d_gate_up, h_gate_up.get(), sizeof(float) * hidden_units * 2 * intermediate_size, cudaMemcpyHostToDevice));
-
-    CHECK(cudaMemcpy(d_down, h_down.get(), sizeof(float) * hidden_units * intermediate_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_ffn_input, h_ffn_input, sizeof(float) * hidden_units * attention_dynamic_params.num_tokens, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_gate_up, h_gate_up, sizeof(float) * hidden_units * 2 * intermediate_size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_down, h_down, sizeof(float) * hidden_units * intermediate_size, cudaMemcpyHostToDevice));
 
     const DataType type = getTensorType<float>();
 
@@ -72,36 +70,35 @@ int main(int argc, char **argv) {
     ffn_weights.down.shape = {hidden_units, intermediate_size};
     ffn_weights.down.is_transposed = true;
     
-
-    auto ffn_input = std::make_unique<TensorWrapper<float>>(
+    auto ffn_input = new TensorWrapper<float>(
         Device::GPU, type,
         std::vector<int>{attention_dynamic_params.num_tokens, hidden_units},
         d_ffn_input
     );
 
-    auto ffn_output = std::make_unique<TensorWrapper<float>>(
+    auto ffn_output = new TensorWrapper<float>(
         Device::GPU, type,
         std::vector<int>{attention_dynamic_params.num_tokens, hidden_units},
         d_ffn_output
     );
 
     TensorMap ffn_inputs{
-        {"ffn_input", ffn_input.get()}
+        {"ffn_input", ffn_input}
     };
 
     TensorMap ffn_outputs{
-        {"ffn_output", ffn_output.get()}
+        {"ffn_output", ffn_output}
     };
 
     std::cout << "Initializing FFN layer" << std::endl;
 
-    auto ffn_layer = std::make_unique<LlamaFFNLayer<float>>(
+    auto ffn_layer = new LlamaFFNLayer<float>(
         head_num, 
         head_size, 
         intermediate_size,
         stream,
-        cublas_wrapper.get(),
-        allocator.get()
+        cublas_wrapper,
+        allocator
     );
 
     std::cout << "Start fwd" << std::endl;
@@ -115,10 +112,20 @@ int main(int argc, char **argv) {
 
     std::cout << "End fwd" << std::endl;
 
-    cudaFree(d_ffn_input);
-    cudaFree(d_gate_up);
-    cudaFree(d_down);
-    cudaFree(d_ffn_output);
+    // Free allocated memory
+    deallocate(ffn_input, "new");
+    deallocate(ffn_output, "new");
+    deallocate(ffn_layer, "new");
+    deallocate(cublas_wrapper, "new");
+    deallocate(allocator, "new");
 
+    deallocate(h_ffn_input, "new[]");
+    deallocate(h_gate_up, "new[]");
+    deallocate(h_down, "new[]");
+
+    deallocate(d_ffn_input, "cudaMalloc");
+    deallocate(d_gate_up, "cudaMalloc");
+    deallocate(d_down, "cudaMalloc");
+    deallocate(d_ffn_output, "cudaMalloc");
     return 0;
 }

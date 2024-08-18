@@ -126,8 +126,8 @@ void LlamaContextDecoder<T>::forward(
     // Reuse the same buffer between layers
     for (int layer_id = 0; layer_id < num_layer; ++layer_id) {
         if (layer_id > 0) {
-            TensorWrapper<int> layer = TensorWrapper<int>(Device::CPU, type_int, {1}, &layer_id);
-            context_attention_inputs.insert({"layer_id", &layer});
+            TensorWrapper<int> *layer = new TensorWrapper<int>(Device::CPU, type_int, {1}, &layer_id);
+            context_attention_inputs.insert({"layer_id", layer});
         }
 
         decoder_input = context_attention_inputs.at("attention_input");

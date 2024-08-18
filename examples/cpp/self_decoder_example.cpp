@@ -6,17 +6,19 @@
 #include <cuda_runtime.h>
 #include "../../src/layers/includes/self_decoder.h"
 #include "../../src/utils/macro.h"
+#include "../../src/memory/memory_deleter.cuh"
 
 // Function to allocate and initialize memory on the device
 template<typename T>
 T *mallocForDevice(size_t size, T init_value) {
-    auto host_ptr = std::make_unique<T[]>(size);
-    std::fill(host_ptr.get(), host_ptr.get() + size, init_value);
+    T *host_ptr = new T[size];
+    std::fill(host_ptr, host_ptr + size, init_value);
 
     T *device_ptr;
     cudaMalloc(reinterpret_cast<void **>(&device_ptr), sizeof(T) * size);
-    cudaMemcpy(device_ptr, host_ptr.get(), sizeof(T) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(device_ptr, host_ptr, sizeof(T) * size, cudaMemcpyHostToDevice);
     
+    delete[] host_ptr;
     return device_ptr;
 }
 
@@ -51,86 +53,82 @@ int main() {
     cublasCreate(&cublas_handle);
     cublasSetMathMode(cublas_handle, CUBLAS_DEFAULT_MATH);
 
-    auto cublas_wrapper = std::make_shared<CublasWrapper>(cublas_handle, cublaslt_handle);
-    auto allocator = std::make_shared<CudaAllocator>();
+    auto cublas_wrapper = new CublasWrapper(cublas_handle, cublaslt_handle);
+    auto allocator = new CudaAllocator();
 
     // Allocate and initialize memory
-    auto d_decoder_input = mallocForDevice<float>(q_hidden_units * attn_dyn_params.batch_size, 0.0f);
-    auto d_decoder_output = mallocForDevice<float>(q_hidden_units * attn_dyn_params.batch_size, 0.0f);
-    auto d_all_k_cache = mallocForDevice<float>(num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
-    auto d_all_v_cache = mallocForDevice<float>(num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
-    auto d_finished = mallocForDevice<bool>(attn_dyn_params.batch_size, false);
+    float *d_decoder_input = mallocForDevice<float>(q_hidden_units * attn_dyn_params.batch_size, 0.0f);
+    float *d_decoder_output = mallocForDevice<float>(q_hidden_units * attn_dyn_params.batch_size, 0.0f);
+    float *d_all_k_cache = mallocForDevice<float>(num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
+    float *d_all_v_cache = mallocForDevice<float>(num_layers * attn_dyn_params.batch_size * kv_head_num * max_seq_len * head_size, 1.0f);
+    bool *d_finished = mallocForDevice<bool>(attn_dyn_params.batch_size, false);
 
-    auto d_output_norm_weight = mallocForDevice<float>(q_hidden_units, 2.0f);
-    auto d_attn_norm_weight = mallocForDevice<float>(q_hidden_units, 1.0f);
-    auto d_ffn_norm_weight = mallocForDevice<float>(q_hidden_units, 1.0f);
-    auto d_qkv_weights = mallocForDevice<float>(hidden_units * q_hidden_units, 1.0f);
-    auto d_qkv_bias = mallocForDevice<float>(hidden_units, 2.0f);
-    auto d_output_weights = mallocForDevice<float>(q_hidden_units * q_hidden_units, 1.0f);
-    auto d_out_bias = mallocForDevice<float>(head_num * head_size, 2.0f);
+    float *d_output_norm_weight = mallocForDevice<float>(q_hidden_units, 2.0f);
+    float *d_attn_norm_weight = mallocForDevice<float>(q_hidden_units, 1.0f);
+    float *d_ffn_norm_weight = mallocForDevice<float>(q_hidden_units, 1.0f);
+    float *d_qkv_weights = mallocForDevice<float>(hidden_units * q_hidden_units, 1.0f);
+    float *d_qkv_bias = mallocForDevice<float>(hidden_units, 2.0f);
+    float *d_output_weights = mallocForDevice<float>(q_hidden_units * q_hidden_units, 1.0f);
+    float *d_out_bias = mallocForDevice<float>(head_num * head_size, 2.0f);
 
-    auto d_ffn_gate = mallocForDevice<float>(hidden_units * 2 * intermediate_size, 2.0f);
-    auto d_ffn_up = mallocForDevice<float>(hidden_units * intermediate_size, 2.0f);
-    auto d_ffn_down_bias = mallocForDevice<float>(hidden_units, 0.0f);
+    float *d_ffn_gate = mallocForDevice<float>(hidden_units * 2 * intermediate_size, 2.0f);
+    float *d_ffn_up = mallocForDevice<float>(hidden_units * intermediate_size, 2.0f);
+    float *d_ffn_down_bias = mallocForDevice<float>(hidden_units, 0.0f);
 
     // Tensor Wrappers
     DataType type = getTensorType<float>();
     DataType type_int = getTensorType<int>();
     DataType type_bool = getTensorType<bool>();
 
-    std::vector<std::unique_ptr<LlamaLayerWeight<float>>> layer_weights;
+    auto layer_weights = new std::vector<LlamaLayerWeight<float> *>;
     WeightType wtype = getWeightType<float>();
-    layer_weights.reserve(num_layers);
+    layer_weights->reserve(num_layers);
 
     for (int i = 0; i < num_layers; ++i) {
-        layer_weights.push_back(
-            std::make_unique<LlamaLayerWeight<float>>(
-                head_num, kv_head_num, head_size, intermediate_size, wtype, true
-            )
-        );
-        layer_weights.back()->loadWeightsFromFile();
+        auto weight = new LlamaLayerWeight<float>(head_num, kv_head_num, head_size, intermediate_size, wtype, true);
+        weight->loadWeightsFromFile();
+        layer_weights->push_back(std::move(weight));
     }
 
-    auto decoder_input = std::make_unique<TensorWrapper<float>>(
+    TensorWrapper<float> *decoder_input = new TensorWrapper<float>(
         Device::GPU, type, 
         std::vector<int>{attn_dyn_params.batch_size, q_hidden_units}, d_decoder_input
     );
 
-    auto step = std::make_unique<TensorWrapper<int>>(
+    TensorWrapper<int> *step = new TensorWrapper<int>(
         Device::CPU, type_int, 
         std::vector<int>{1}, &h_step
     );
 
-    auto finished = std::make_unique<TensorWrapper<bool>>(
+    TensorWrapper<bool> *finished = new TensorWrapper<bool>(
         Device::GPU, type_bool, 
         std::vector<int>{attn_dyn_params.batch_size}, d_finished
     );
 
-    auto layer = std::make_unique<TensorWrapper<int>>(
+    TensorWrapper<int> *layer = new TensorWrapper<int>(
         Device::CPU, type_int, 
         std::vector<int>{1}, &layer_id
     );
 
-    auto output_norm_weight = std::make_unique<TensorWrapper<float>>(
+    TensorWrapper<float> *output_norm_weight = new TensorWrapper<float>(
         Device::GPU, type, 
         std::vector<int>{q_hidden_units}, d_output_norm_weight
     );
 
-    auto decoder_output = std::make_unique<TensorWrapper<float>>(
+    TensorWrapper<float> *decoder_output = new TensorWrapper<float>(
         Device::GPU, type, 
         std::vector<int>{attn_dyn_params.batch_size, q_hidden_units}, d_decoder_output
     );
 
-    auto key_cache = std::make_unique<TensorWrapper<float>>(
+    TensorWrapper<float> *key_cache = new TensorWrapper<float>(
         Device::GPU, type, 
         std::vector<int>{num_layers, attn_dyn_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_k_cache
     );
 
-    auto value_cache = std::make_unique<TensorWrapper<float>>(
+    TensorWrapper<float> *value_cache = new TensorWrapper<float>(
         Device::GPU, type, 
         std::vector<int>{num_layers, attn_dyn_params.batch_size, kv_head_num, max_seq_len, head_size}, d_all_v_cache
     );
-
 
     LLM_CHECK_WITH_INFO(
         decoder_input->data != nullptr, 
@@ -153,20 +151,20 @@ int main() {
     );
 
     TensorMap decoder_inputs {
-        {"decoder_input", decoder_input.get()},
-        {"step", step.get()},
-        {"finished", finished.get()},
-        {"layer_id", layer.get()},
-        {"output_norm_weight", output_norm_weight.get()}
+        {"decoder_input", decoder_input},
+        {"step", step},
+        {"finished", finished},
+        {"layer_id", layer},
+        {"output_norm_weight", output_norm_weight}
     };
 
     TensorMap decoder_outputs {
-        {"decoder_output", decoder_output.get()},
-        {"all_k_cache", key_cache.get()},
-        {"all_v_cache", value_cache.get()}
+        {"decoder_output", decoder_output},
+        {"all_k_cache", key_cache},
+        {"all_v_cache", value_cache}
     };
 
-    auto self_decoder = std::make_unique<LlamaSelfDecoder<float>>(
+    auto self_decoder = new LlamaSelfDecoder<float>(
         head_num, kv_head_num, head_size, intermediate_size, num_layers,
         attn_static_params, 
         rmsnorm_eps, 
@@ -177,20 +175,46 @@ int main() {
 
     self_decoder->forward(
         &decoder_inputs, 
-        &layer_weights, 
+        layer_weights, 
         &decoder_outputs, 
         &attn_dyn_params
     );
     cudaDeviceSynchronize();
 
-    // Free allocated memory
-    cudaFree(d_decoder_input);
-    cudaFree(d_all_k_cache);
-    cudaFree(d_all_v_cache);
-    cudaFree(d_finished);
-    cudaFree(d_qkv_weights);
-    cudaFree(d_output_weights);
-    cudaFree(d_qkv_bias);
+    // Deallocate device memory
+    deallocate(d_decoder_input, "cudaMalloc");
+    deallocate(d_decoder_output, "cudaMalloc");
+    deallocate(d_all_k_cache, "cudaMalloc");
+    deallocate(d_all_v_cache, "cudaMalloc");
+    deallocate(d_finished, "cudaMalloc");
+    deallocate(d_output_norm_weight, "cudaMalloc");
+    deallocate(d_attn_norm_weight, "cudaMalloc");
+    deallocate(d_ffn_norm_weight, "cudaMalloc");
+    deallocate(d_qkv_weights, "cudaMalloc");
+    deallocate(d_qkv_bias, "cudaMalloc");
+    deallocate(d_output_weights, "cudaMalloc");
+    deallocate(d_out_bias, "cudaMalloc");
+    deallocate(d_ffn_gate, "cudaMalloc");
+    deallocate(d_ffn_up, "cudaMalloc");
+    deallocate(d_ffn_down_bias, "cudaMalloc");
+
+    // Deallocate dynamically allocated objects
+    deallocate(cublas_wrapper, "new");
+    deallocate(allocator, "new");
+    deallocate(decoder_input, "new");
+    deallocate(step, "new");
+    deallocate(finished, "new");
+    deallocate(layer, "new");
+    deallocate(output_norm_weight, "new");
+    deallocate(decoder_output, "new");
+    deallocate(key_cache, "new");
+    deallocate(value_cache, "new");
+
+    // Clean up layer_weights
+    for (auto layer_weight : *layer_weights) {
+        deallocate(layer_weight, "new");
+    }
+    deallocate(layer_weights, "new");
 
     return 0;
 }

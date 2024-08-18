@@ -10,6 +10,7 @@
 #include <cuda_fp16.h>
 #include "string_utils.h"
 #include "macro.h"
+#include "../memory/memory_deleter.cuh"
 
 #include <type_traits>
 #include <cstdint>  // for int8_t
@@ -176,6 +177,16 @@ public:
             data
         );
     }
+
+    ~TensorWrapper() {
+        if (this->device == Device::CPU) {
+            deallocate(data, "new");
+        } else if (this->device == Device::GPU) {
+            deallocate(data, "cudaMalloc");
+        } else {
+            std::cerr << "Unsupported device type!" << std::endl;
+        }
+    }
 };
 
 class TensorMap {
@@ -209,6 +220,9 @@ public:
     }
 
     virtual ~TensorMap() {
+        for (auto &kv : tensor_map) {
+            deallocate(kv.second, "new");
+        }
         tensor_map.clear();
     }
 

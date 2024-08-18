@@ -3,6 +3,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "../../src/layers/includes/context_attention.h"
+#include "../../src/memory/memory_deleter.cuh"
+
 
 int main(int argc, char **argv) {
     constexpr int head_num = 8;
@@ -221,7 +223,7 @@ int main(int argc, char **argv) {
     LLM_CHECK_WITH_INFO(context_length->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
     LLM_CHECK_WITH_INFO(attention_mask->data != nullptr, "Tensor inserted in TensorMap is nullptr data!");
 
-    std::cout<< "2nd!" << std::endl;
+    std::cout << "2nd!" << std::endl;
 
     TensorMap context_attention_inputs{
         {"attention_input", attention_input},
@@ -264,9 +266,9 @@ int main(int argc, char **argv) {
         allocator
     );
 
-    std::cout<< "3rd!" << std::endl;
+    std::cout << "3rd!" << std::endl;
 
-    // forward pass
+    // Forward pass
     context_attention->forward(
         &context_attention_inputs, 
         &context_attention_outputs, 
@@ -274,27 +276,34 @@ int main(int argc, char **argv) {
         &attn_dyn_params, 
         &attention_static_params
     );
-
-    // Free buffer
     cudaDeviceSynchronize();
-    free(h_attention_input);
-    cudaFree(d_attention_input);
-    free(h_qkv_bias);
-    cudaFree(d_qkv_bias);
-    free(h_all_k_cache);
-    cudaFree(d_all_k_cache);
-    free(h_all_v_cache);
-    cudaFree(d_all_v_cache);
-    free(h_padding_offset);
-    cudaFree(d_padding_offset);
-    free(h_history_len);
-    cudaFree(d_history_len);
-    free(h_input_len);
-    cudaFree(d_input_len);
-    free(h_context_len);
-    cudaFree(d_context_len);
-    cudaFree(d_attention_output);
-    delete cublas_wrapper;
-    delete allocator;
+
+    // Free host memory allocated with malloc
+    deallocate(h_attention_input, "malloc");
+    deallocate(h_qkv_weights, "malloc");
+    deallocate(h_qkv_bias, "malloc");
+    deallocate(h_all_k_cache, "malloc");
+    deallocate(h_all_v_cache, "malloc");
+    deallocate(h_padding_offset, "malloc");
+    deallocate(h_history_len, "malloc");
+    deallocate(h_input_len, "malloc");
+    deallocate(h_context_len, "malloc");
+
+    // Free device memory allocated with cudaMalloc
+    deallocate(d_attention_input, "cudaMalloc");
+    deallocate(d_qkv_weights, "cudaMalloc");
+    deallocate(d_qkv_bias, "cudaMalloc");
+    deallocate(d_all_k_cache, "cudaMalloc");
+    deallocate(d_all_v_cache, "cudaMalloc");
+    deallocate(d_padding_offset, "cudaMalloc");
+    deallocate(d_history_len, "cudaMalloc");
+    deallocate(d_input_len, "cudaMalloc");
+    deallocate(d_context_len, "cudaMalloc");
+    deallocate(d_attention_output, "cudaMalloc");
+    deallocate(d_output_weights, "cudaMalloc");
+
+    // Free objects allocated with new
+    deallocate(cublas_wrapper, "new");
+    deallocate(allocator, "new");
     return 0;
 }
