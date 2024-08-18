@@ -27,10 +27,10 @@ private:
 
     // Buffers
     // [2, num tokens, intersize]
-    TensorWrapper<T> *swiglu_input; //gate proj and up proj output buf
+    TensorWrapper<T> *swiglu_input = nullptr; //gate proj and up proj output buf
     
     // [num tokens, intersize]
-    TensorWrapper<T> *down_proj_input; // Down proj output buf
+    TensorWrapper<T> *down_proj_input = nullptr; // Down proj output buf
 
 public:
     LlamaFFNLayer(

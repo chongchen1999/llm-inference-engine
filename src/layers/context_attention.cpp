@@ -129,6 +129,15 @@ void LlamaContextAttentionLayer<T>::freeBuf() {
     delete qkT;
     delete padded_qkTv;
     delete transposed_unpadded_qkv;
+    lineared_qkv = nullptr;
+    padded_q = nullptr;
+    padded_k = nullptr;
+    padded_v = nullptr;
+    k_cache = nullptr;
+    v_cache = nullptr;
+    qkT = nullptr;
+    padded_qkTv = nullptr;
+    transposed_unpadded_qkv = nullptr;
 }
 
 template<typename T>

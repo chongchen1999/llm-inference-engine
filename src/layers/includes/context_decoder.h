@@ -22,18 +22,18 @@ private:
     int num_layer;
     int hidden_units;
     float rmsnorm_eps;
-    
-    std::unique_ptr<TensorWrapper<T>> attention_mask;
-    std::unique_ptr<TensorWrapper<int>> padding_offset;
-    std::unique_ptr<TensorWrapper<int>> cum_seqlens;
-    std::unique_ptr<TensorWrapper<T>> decoder_residual;
+
+    TensorWrapper<T> *attention_mask = nullptr;
+    TensorWrapper<int> *padding_offset = nullptr;
+    TensorWrapper<int> *cum_seqlens = nullptr;
+    TensorWrapper<T> *decoder_residual = nullptr;
 
     cudaStream_t stream;
-    std::shared_ptr<CublasWrapper> cublas_wrapper;
-    std::shared_ptr<BaseAllocator> allocator;
+    CublasWrapper *cublas_wrapper;
+    BaseAllocator *allocator;
 
-    std::unique_ptr<LlamaContextAttentionLayer<T>> context_attention;
-    std::unique_ptr<LlamaFFNLayer<T>> ffn;
+    LlamaContextAttentionLayer<T> *context_attention = nullptr;
+    LlamaFFNLayer<T> *ffn = nullptr;
     DataType data_type;
 
 public:
@@ -46,8 +46,8 @@ public:
         LlamaAttentionStaticParams *const &attention_static_params,
         const float &rmsnorm_eps,
         const cudaStream_t &stream,
-        const std::shared_ptr<CublasWrapper> &cublas_wrapper,
-        const std::shared_ptr<BaseAllocator> &allocator
+        CublasWrapper *const &cublas_wrapper,
+        BaseAllocator *const &allocator
     ) :
         head_num(head_num),
         kv_head_num(kv_head_num),
@@ -60,34 +60,31 @@ public:
         stream(stream),
         cublas_wrapper(cublas_wrapper),
         allocator(allocator) {
-        
-        context_attention = std::make_unique<LlamaContextAttentionLayer<T>>(
-            head_num,
-            kv_head_num,
-            head_size,
-            attention_static_params,
-            stream,
-            cublas_wrapper.get(),
-            allocator.get()
-        );
+            context_attention = new LlamaContextAttentionLayer<T>(
+                head_num,
+                kv_head_num,
+                head_size,
+                attention_static_params,
+                stream,
+                cublas_wrapper,
+                allocator
+            );
 
-        ffn = std::make_unique<LlamaFFNLayer<T>>(
-            head_num,
-            head_size,
-            intermediate_size,
-            stream,
-            cublas_wrapper.get(),
-            allocator.get()
-        );
-    }
+            ffn = new LlamaFFNLayer<T>(
+                head_num,
+                head_size,
+                intermediate_size,
+                stream,
+                cublas_wrapper,
+                allocator
+            );
+        }
 
     void allocateMemory(LlamaAttentionDynamicParams *attention_dynamic_params);
-
     void freeBuf();
-
     void forward(
         TensorMap *input_tensors,
-        std::vector<std::unique_ptr<LlamaLayerWeight<T>>> *const layer_weights,
+        std::vector<LlamaLayerWeight<T> *> *layer_weights,
         TensorMap *output_tensors,
         LlamaAttentionDynamicParams *attention_dynamic_params
     );

@@ -55,17 +55,8 @@ void LlamaFFNLayer<T>::allocateMemory(const int &batch_size) {
     swiglu_input = new TensorWrapper<T>(Device::GPU, type, {batch_size, 2, intermediate_size});
     down_proj_input = new TensorWrapper<T>(Device::GPU, type, {batch_size, intermediate_size});
 
-    allocator->malloc(
-        &swiglu_input->data,
-        sizeof(T) * batch_size * 2 * intermediate_size,
-        false
-    );
-
-    allocator->malloc(
-        &down_proj_input->data,
-        sizeof(T) * batch_size * intermediate_size,
-        false
-    );
+    allocator->malloc(&swiglu_input->data, sizeof(T) * batch_size * 2 * intermediate_size, false);
+    allocator->malloc(&down_proj_input->data, sizeof(T) * batch_size * intermediate_size, false);
 }
 
 template<typename T>
@@ -78,6 +69,8 @@ void LlamaFFNLayer<T>::freeBuf() {
 
     delete swiglu_input;
     delete down_proj_input;
+    swiglu_input = nullptr;
+    down_proj_input = nullptr;
 }
 
 template<typename T>

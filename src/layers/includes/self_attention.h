@@ -17,7 +17,6 @@
 template<typename T>
 class LlamaSelfAttentionLayer {
 private:
-    // Shared parameters across all LLMs
     int head_num;
     int head_size;
     int hidden_units;
@@ -33,8 +32,8 @@ private:
     CublasWrapper *cublas_wrapper;
 
     // Intermediate buffers
-    std::unique_ptr<TensorWrapper<T>> qkv_buf;
-    std::unique_ptr<TensorWrapper<T>> mha_output;
+    TensorWrapper<T> *qkv_buf = nullptr;
+    TensorWrapper<T> *mha_output = nullptr;
 
 public:
     LlamaSelfAttentionLayer(
@@ -52,14 +51,12 @@ public:
         return attention_static_params;
     }
 
-    void allocateMemory(LlamaAttentionDynamicParams *params);
-
+    void allocateMemory(LlamaAttentionDynamicParams *dynamic_params);
     void freeBuf();
-
     void forward(
         TensorMap *inputs,
         TensorMap *outputs,
         LlamaAttentionWeights<T> *weights,
-        LlamaAttentionDynamicParams *params
+        LlamaAttentionDynamicParams *dynamic_params
     );
 };
